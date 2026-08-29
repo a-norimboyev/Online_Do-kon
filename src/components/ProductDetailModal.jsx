@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from '../context/StoreContext';
 import {
   X,
@@ -36,6 +36,13 @@ export default function ProductDetailModal() {
   );
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('specs'); // 'specs' or 'reviews'
+
+  useEffect(() => {
+    if (product) {
+      setActiveImage(product.gallery && product.gallery.length ? product.gallery[0] : product.image);
+      setQuantity(1);
+    }
+  }, [product?.id]);
 
   // New Review Form State
   const [reviewName, setReviewName] = useState('');
