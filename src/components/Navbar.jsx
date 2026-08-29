@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../context/StoreContext';
+import { api } from '../services/api';
 import {
   ShoppingBag,
   Heart,
@@ -17,7 +18,8 @@ import {
   User,
   LayoutGrid,
   ArrowRight,
-  Globe
+  Globe,
+  Tag
 } from 'lucide-react';
 
 export default function Navbar() {
@@ -44,15 +46,36 @@ export default function Navbar() {
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [selectedCity, setSelectedCity] = useState('Toshkent');
+  const [apiSearchResults, setApiSearchResults] = useState([]);
+  const [apiCategories, setApiCategories] = useState([]);
   const searchContainerRef = useRef(null);
 
-  // Filter top matching search suggestions
-  const searchSuggestions = searchQuery.trim().length > 0
-    ? products.filter(p => {
+  // Real-time API Search with debounce
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setApiSearchResults([]);
+      setApiCategories([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      const res = await api.search(searchQuery);
+      if (res && res.data && res.data.length > 0) {
+        setApiSearchResults(res.data);
+        setApiCategories(res.categories || []);
+      } else {
+        // Local fallback
         const q = searchQuery.toLowerCase();
-        return p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q);
-      }).slice(0, 6)
-    : [];
+        const localMatched = products.filter(p =>
+          (p.name || p.title || '').toLowerCase().includes(q) ||
+          (p.description || '').toLowerCase().includes(q)
+        ).slice(0, 6);
+        setApiSearchResults(localMatched);
+      }
+    }, 120);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, products]);
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -141,7 +164,7 @@ export default function Navbar() {
             <span>Katalog</span>
           </button>
 
-          {/* Search Input Bar with Autocomplete Dropdown */}
+          {/* Search Input Bar with Live API Autocomplete Dropdown */}
           <div ref={searchContainerRef} className="flex-1 max-w-2xl relative">
             <div className="relative flex items-center w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden focus-within:border-[#7000FF] focus-within:ring-2 focus-within:ring-[#7000FF]/20 transition-all">
               <input
@@ -170,37 +193,69 @@ export default function Navbar() {
               </button>
             </div>
 
-            {/* Live Autocomplete Dropdown */}
-            {isSearchFocused && searchSuggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50 animate-scale-in">
-                <div className="p-2 space-y-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 py-1 block">
-                    Qidiruv natijalari
-                  </span>
-                  {searchSuggestions.map((prod) => (
-                    <button
-                      key={prod.id}
-                      onClick={() => handleSelectProduct(prod)}
-                      className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-[#F2F4F7] dark:hover:bg-slate-800 transition-colors text-left group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={prod.image}
-                          alt={prod.name}
-                          className="w-10 h-10 rounded-lg object-cover bg-slate-100 dark:bg-slate-800"
-                        />
-                        <div>
-                          <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-1 group-hover:text-[#7000FF]">
-                            {prod.name}
-                          </h4>
-                          <span className="text-[11px] font-black text-[#7000FF]">
-                            {prod.price.toLocaleString()} so'm
-                          </span>
-                        </div>
+            {/* Live API Search Results Dropdown */}
+            {isSearchFocused && searchQuery.trim().length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50 animate-scale-in max-h-96 overflow-y-auto">
+                <div className="p-3 space-y-2">
+                  {/* Category matches */}
+                  {apiCategories.length > 0 && (
+                    <div className="pb-2 border-b border-slate-100 dark:border-slate-800">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                        Toifalar bo'yicha:
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {apiCategories.map(cat => (
+                          <button
+                            key={cat.id}
+                            onClick={() => {
+                              setSelectedCategory(cat.id);
+                              setIsSearchFocused(false);
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#E8E3FF] text-[#7000FF] text-xs font-bold hover:bg-[#7000FF] hover:text-white transition-colors"
+                          >
+                            <Tag className="w-3 h-3" />
+                            <span>{cat.name}</span>
+                          </button>
+                        ))}
                       </div>
-                      <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-[#7000FF] group-hover:translate-x-1 transition-all" />
-                    </button>
-                  ))}
+                    </div>
+                  )}
+
+                  {/* Product matches */}
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block px-1">
+                    Mahsulotlar ({apiSearchResults.length} ta natija):
+                  </span>
+
+                  {apiSearchResults.length > 0 ? (
+                    apiSearchResults.map((prod) => (
+                      <button
+                        key={prod.id}
+                        onClick={() => handleSelectProduct(prod)}
+                        className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-[#F2F4F7] dark:hover:bg-slate-800 transition-colors text-left group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={prod.image}
+                            alt={prod.name || prod.title}
+                            className="w-11 h-11 rounded-lg object-cover bg-slate-100 dark:bg-slate-800 flex-shrink-0"
+                          />
+                          <div>
+                            <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-1 group-hover:text-[#7000FF]">
+                              {prod.name || prod.title}
+                            </h4>
+                            <span className="text-[11px] font-black text-[#7000FF]">
+                              {prod.price.toLocaleString()} so'm
+                            </span>
+                          </div>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-[#7000FF] group-hover:translate-x-1 transition-all" />
+                      </button>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-xs text-slate-400">
+                      Hech qanday mahsulot topilmadi
+                    </div>
+                  )}
                 </div>
               </div>
             )}
