@@ -64,11 +64,11 @@ export default function Footer() {
 
       {/* Main Footer Links */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-10">
           {/* Brand */}
-          <div className="space-y-4">
+          <div className="space-y-4 min-w-0">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-500 flex items-center justify-center text-white shadow-md">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-500 flex items-center justify-center text-white shadow-md flex-shrink-0">
                 <ShoppingBag className="w-5 h-5" />
               </div>
               <span className="text-lg font-black tracking-tight text-slate-900 dark:text-white">
@@ -78,11 +78,11 @@ export default function Footer() {
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
               O'zbekistondagi eng qulay va ishonchli internet-magazin platformasi. Sifatli tovarlar va tezkor yetkazib berish xizmati.
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
               {['Payme', 'Click', 'Uzum', 'Uzcard', 'Humo'].map((badge) => (
                 <span
                   key={badge}
-                  className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-300"
+                  className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60"
                 >
                   {badge}
                 </span>
@@ -91,11 +91,11 @@ export default function Footer() {
           </div>
 
           {/* Categories */}
-          <div>
+          <div className="min-w-0">
             <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-4">
               Kategoriyalar
             </h4>
-            <ul className="space-y-2 text-xs">
+            <ul className="space-y-2.5 text-xs">
               {categories.slice(0, 6).map((cat) => (
                 <li key={cat.id}>
                   <button
@@ -104,7 +104,7 @@ export default function Footer() {
                       setCurrentView('store');
                       window.scrollTo({ top: 400, behavior: 'smooth' });
                     }}
-                    className="text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors"
+                    className="text-left text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors"
                   >
                     {cat.name}
                   </button>
@@ -114,11 +114,11 @@ export default function Footer() {
           </div>
 
           {/* Customer Service */}
-          <div>
+          <div className="min-w-0">
             <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-4">
               Xaridorlar uchun
             </h4>
-            <ul className="space-y-2 text-xs text-slate-500 dark:text-slate-400">
+            <ul className="space-y-2.5 text-xs text-slate-500 dark:text-slate-400">
               <li>Yetkazib berish va to'lov shartlari</li>
               <li>Tovarlarni qaytarish siyosati</li>
               <li>Muddatli to'lov (Nasiya) shartlari</li>
@@ -128,13 +128,13 @@ export default function Footer() {
           </div>
 
           {/* Contact */}
-          <div>
+          <div className="min-w-0">
             <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-4">
               Bog'lanish
             </h4>
-            <ul className="space-y-2.5 text-xs text-slate-500 dark:text-slate-400">
-              <li className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+            <ul className="space-y-3 text-xs text-slate-500 dark:text-slate-400">
+              <li className="flex items-start gap-2">
+                <MapPin className="w-4 h-4 text-indigo-500 flex-shrink-0 mt-0.5" />
                 <span>Toshkent shahri, Amir Temur ko'chasi 14-uy</span>
               </li>
               <li className="flex items-center gap-2">
