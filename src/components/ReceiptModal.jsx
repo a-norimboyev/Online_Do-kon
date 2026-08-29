@@ -180,3 +180,4 @@ export default function ReceiptModal() {
     </div>
   );
 }
+
