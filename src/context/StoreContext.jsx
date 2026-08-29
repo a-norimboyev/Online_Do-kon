@@ -6,6 +6,7 @@ import {
   INITIAL_PROMOS,
   REGIONS_UZB
 } from '../data/initialData';
+import { api } from '../services/api';
 
 const StoreContext = createContext();
 
@@ -32,7 +33,7 @@ export const StoreProvider = ({ children }) => {
   const [currentView, setCurrentView] = useState('store');
   const [adminActiveTab, setAdminActiveTab] = useState('dashboard');
 
-  // Core Data States with LocalStorage Persistence
+  // Core Data States with LocalStorage & API Sync
   const [products, setProducts] = useState(() => {
     const saved = localStorage.getItem('online_dokon_products');
     if (saved) {
@@ -71,7 +72,29 @@ export const StoreProvider = ({ children }) => {
 
   const [activePromo, setActivePromo] = useState(null);
 
-  // Sync back to LocalStorage whenever state changes
+  // Initial fetch from backend API if server is active
+  useEffect(() => {
+    async function loadDataFromApi() {
+      try {
+        const [apiProds, apiCats, apiOrds, apiProms] = await Promise.all([
+          api.getProducts(),
+          api.getCategories(),
+          api.getOrders(),
+          api.getPromos()
+        ]);
+
+        if (apiProds && apiProds.length > 0) setProducts(apiProds);
+        if (apiCats && apiCats.length > 0) setCategories(apiCats);
+        if (apiOrds && apiOrds.length > 0) setOrders(apiOrds);
+        if (apiProms && apiProms.length > 0) setPromos(apiProms);
+      } catch (e) {
+        console.log('Using local client state (API server offline or starting up)');
+      }
+    }
+    loadDataFromApi();
+  }, []);
+
+  // Sync to LocalStorage
   useEffect(() => {
     localStorage.setItem('online_dokon_products', JSON.stringify(products));
   }, [products]);
@@ -239,13 +262,16 @@ export const StoreProvider = ({ children }) => {
   };
 
   // Orders Management
-  const createOrder = (orderData) => {
+  const createOrder = async (orderData) => {
     const newOrder = {
       id: `ORD-${Math.floor(10000 + Math.random() * 90000)}`,
       createdAt: new Date().toISOString(),
       status: 'Yangi',
       ...orderData
     };
+
+    // Call API in background
+    api.createOrder(newOrder);
 
     // Deduct stock from products
     setProducts(prev =>
@@ -269,6 +295,7 @@ export const StoreProvider = ({ children }) => {
   };
 
   const updateOrderStatus = (orderId, newStatus) => {
+    api.updateOrderStatus(orderId, newStatus);
     setOrders(prev =>
       prev.map(ord => (ord.id === orderId ? { ...ord, status: newStatus } : ord))
     );
@@ -277,22 +304,27 @@ export const StoreProvider = ({ children }) => {
 
   // Product CRUD (Admin)
   const addProduct = (productData) => {
+    const discount = productData.oldPrice && productData.oldPrice > productData.price
+      ? Math.round(((productData.oldPrice - productData.price) / productData.oldPrice) * 100)
+      : 0;
+
     const newProduct = {
       id: `prod-${Date.now()}`,
       rating: 5.0,
       reviewsCount: 0,
       reviews: [],
-      discount: productData.oldPrice && productData.oldPrice > productData.price
-        ? Math.round(((productData.oldPrice - productData.price) / productData.oldPrice) * 100)
-        : 0,
+      discount,
       ...productData
     };
+
+    api.createProduct(newProduct);
     setProducts(prev => [newProduct, ...prev]);
     showToast(`"${newProduct.name}" tovari muvaffaqiyatli qo'shildi!`, 'success');
     return newProduct;
   };
 
   const updateProduct = (productId, updatedFields) => {
+    api.updateProduct(productId, updatedFields);
     setProducts(prev =>
       prev.map(prod => {
         if (prod.id === productId) {
@@ -308,6 +340,7 @@ export const StoreProvider = ({ children }) => {
   };
 
   const deleteProduct = (productId) => {
+    api.deleteProduct(productId);
     const prod = products.find(p => p.id === productId);
     setProducts(prev => prev.filter(p => p.id !== productId));
     setCart(prev => prev.filter(item => item.id !== productId));
@@ -322,6 +355,8 @@ export const StoreProvider = ({ children }) => {
       date: new Date().toISOString().split('T')[0],
       ...reviewData
     };
+
+    api.addReview(productId, reviewData);
 
     setProducts(prev =>
       prev.map(prod => {
@@ -352,6 +387,7 @@ export const StoreProvider = ({ children }) => {
   };
 
   const deleteReview = (productId, reviewId) => {
+    api.deleteReview(productId, reviewId);
     setProducts(prev =>
       prev.map(prod => {
         if (prod.id === productId) {
@@ -378,11 +414,14 @@ export const StoreProvider = ({ children }) => {
       id: `cat-${Date.now()}`,
       ...categoryData
     };
+    api.createCategory(newCat);
     setCategories(prev => [...prev, newCat]);
     showToast(`"${newCat.name}" toifasi qo'shildi`, 'success');
   };
 
   const updateCategory = (categoryId, newName, newIcon) => {
+    const payload = { name: newName, icon: newIcon };
+    api.updateCategory(categoryId, payload);
     setCategories(prev =>
       prev.map(cat => (cat.id === categoryId ? { ...cat, name: newName, icon: newIcon || cat.icon } : cat))
     );
@@ -391,17 +430,20 @@ export const StoreProvider = ({ children }) => {
 
   const deleteCategory = (categoryId) => {
     if (categoryId === 'all') return;
+    api.deleteCategory(categoryId);
     setCategories(prev => prev.filter(c => c.id !== categoryId));
     showToast("Toifa o'chirildi", 'info');
   };
 
   // Promos CRUD
   const addPromo = (promoData) => {
+    api.createPromo(promoData);
     setPromos(prev => [...prev, promoData]);
     showToast(`"${promoData.code}" promo-kodi yaratildi`, 'success');
   };
 
   const deletePromo = (code) => {
+    api.deletePromo(code);
     setPromos(prev => prev.filter(p => p.code !== code));
     if (activePromo && activePromo.code === code) {
       setActivePromo(null);
@@ -410,7 +452,8 @@ export const StoreProvider = ({ children }) => {
   };
 
   // Reset to Demo Data
-  const resetDemoData = () => {
+  const resetDemoData = async () => {
+    await api.resetData();
     setProducts(INITIAL_PRODUCTS);
     setCategories(INITIAL_CATEGORIES);
     setOrders(INITIAL_ORDERS);
@@ -542,4 +585,3 @@ export const StoreProvider = ({ children }) => {
 };
 
 export const useStore = () => useContext(StoreContext);
-
