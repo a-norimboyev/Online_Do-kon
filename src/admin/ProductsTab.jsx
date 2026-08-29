@@ -10,7 +10,8 @@ import {
   Check,
   Star,
   Sparkles,
-  SlidersHorizontal,
+  FileSpreadsheet,
+  Upload,
   Image as ImageIcon
 } from 'lucide-react';
 
@@ -20,7 +21,8 @@ export default function ProductsTab() {
     categories,
     addProduct,
     updateProduct,
-    deleteProduct
+    deleteProduct,
+    showToast
   } = useStore();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -88,6 +90,55 @@ export default function ProductsTab() {
     setIsModalOpen(true);
   };
 
+  // Handle local file upload
+  const handleImageFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData(prev => ({ ...prev, image: reader.result }));
+      showToast("Rasm muvaffaqiyatli tanlandi!", "success");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Export products to CSV
+  const handleExportProductsCSV = () => {
+    if (!products || products.length === 0) {
+      showToast("Eksport qilish uchun tovarlar yo'q!", "info");
+      return;
+    }
+
+    const headers = ["Tovar ID", "Nomi", "Toifasi", "Narxi (so'm)", "Eski narxi", "Chegirma (%)", "Omborda qoldiq", "Reyting", "Sharhlar soni", "Yorliq"];
+    const rows = products.map(p => {
+      const catObj = categories.find(c => c.id === p.category);
+      return [
+        `"${p.id}"`,
+        `"${p.name.replace(/"/g, '""')}"`,
+        `"${catObj ? catObj.name : p.category}"`,
+        `"${p.price}"`,
+        `"${p.oldPrice || ''}"`,
+        `"${p.discount || 0}"`,
+        `"${p.stock}"`,
+        `"${p.rating}"`,
+        `"${p.reviewsCount || 0}"`,
+        `"${p.badge || ''}"`
+      ];
+    });
+
+    const csvContent = "\uFEFF" + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Tovarlar_Katalogi_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast("Tovarlar katalogi Excel (.csv) formatida yuklab olindi!", "success");
+  };
+
   const handleSaveProduct = (e) => {
     e.preventDefault();
 
@@ -143,13 +194,24 @@ export default function ProductsTab() {
           </p>
         </div>
 
-        <button
-          onClick={handleOpenAdd}
-          className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-lg shadow-amber-500/25 transition-all hover:scale-105 active:scale-95"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Yangi tovar qo'shish</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleExportProductsCSV}
+            className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all hover:scale-105"
+            title="Tovarlarni Excel (.csv) formatida yuklab olish"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Excelga yuklash</span>
+          </button>
+
+          <button
+            onClick={handleOpenAdd}
+            className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-lg shadow-amber-500/25 transition-all hover:scale-105 active:scale-95"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Yangi tovar qo'shish</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
@@ -410,27 +472,49 @@ export default function ProductsTab() {
                 </div>
               </div>
 
-              <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Rasm URL havolasi *
+              {/* Image Input: URL or Local File Upload */}
+              <div className="space-y-2">
+                <label className="block font-semibold text-slate-700 dark:text-slate-300">
+                  Tovar rasmi (URL yoki fayl yuklash) *
                 </label>
-                <div className="flex gap-3 items-center">
-                  <input
-                    type="url"
-                    required
-                    value={formData.image}
-                    onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                    placeholder="https://images.unsplash.com/photo-..."
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-amber-500 focus:outline-none dark:text-slate-100"
-                  />
-                  {formData.image && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <input
+                      type="text"
+                      required
+                      value={formData.image}
+                      onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                      placeholder="https://images.unsplash.com/photo-..."
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-amber-500 focus:outline-none dark:text-slate-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="flex items-center justify-center gap-2 w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer font-bold text-slate-600 dark:text-slate-300 transition-colors">
+                      <Upload className="w-4 h-4 text-amber-500" />
+                      <span>Faylni tanlash...</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageFileUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                {formData.image && (
+                  <div className="flex items-center gap-3 pt-1">
                     <img
                       src={formData.image}
                       alt="Preview"
-                      className="w-10 h-10 rounded-lg object-cover border"
+                      className="w-16 h-16 rounded-xl object-cover border border-slate-200 dark:border-slate-700"
                     />
-                  )}
-                </div>
+                    <span className="text-[11px] text-emerald-600 font-semibold">
+                      ✓ Rasm ko'rinishi tayyor
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -481,4 +565,3 @@ export default function ProductsTab() {
     </div>
   );
 }
-

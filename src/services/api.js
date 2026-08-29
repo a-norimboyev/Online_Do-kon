@@ -9,7 +9,7 @@ export const api = {
       const data = await res.json();
       return data.data;
     } catch (e) {
-      console.warn('API getDashboardStats error, using local fallback', e);
+      console.warn('API getDashboardStats error', e);
       return null;
     }
   },
@@ -23,7 +23,7 @@ export const api = {
       const data = await res.json();
       return data.data;
     } catch (e) {
-      console.warn('API getProducts error, using local fallback', e);
+      console.warn('API getProducts error', e);
       return null;
     }
   },

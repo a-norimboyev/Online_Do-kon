@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../context/StoreContext';
 import {
   ShoppingBag,
@@ -12,7 +12,9 @@ import {
   X,
   Store,
   Sparkles,
-  PhoneCall
+  PhoneCall,
+  Star,
+  ArrowRight
 } from 'lucide-react';
 
 export default function Navbar() {
@@ -31,10 +33,38 @@ export default function Navbar() {
     setSearchQuery,
     selectedCategory,
     setSelectedCategory,
-    categories
+    categories,
+    products,
+    setSelectedProductDetail
   } = useStore();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const searchContainerRef = useRef(null);
+
+  // Filter top matching search suggestions
+  const searchSuggestions = searchQuery.trim().length > 0
+    ? products.filter(p => {
+        const q = searchQuery.toLowerCase();
+        return p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q);
+      }).slice(0, 5)
+    : [];
+
+  // Close search dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
+        setIsSearchFocused(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelectProduct = (product) => {
+    setSelectedProductDetail(product);
+    setIsSearchFocused(false);
+  };
 
   return (
     <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-white/90 dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-slate-800 transition-colors duration-200">
@@ -93,13 +123,17 @@ export default function Navbar() {
             </button>
           </div>
 
-          {/* Search bar */}
-          <div className="hidden md:flex flex-1 max-w-xl mx-4">
+          {/* Search bar with Live Autocomplete Dropdown */}
+          <div ref={searchContainerRef} className="hidden md:flex flex-1 max-w-xl mx-4 relative">
             <div className="relative w-full">
               <input
                 type="text"
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+                onFocus={() => setIsSearchFocused(true)}
+                onChange={e => {
+                  setSearchQuery(e.target.value);
+                  setIsSearchFocused(true);
+                }}
                 placeholder="20 000+ mahsulotlar ichidan qidiring (masalan: iPhone, noutbuk, kitob)..."
                 className="w-full pl-11 pr-10 py-2.5 rounded-full bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-900 transition-all dark:text-slate-100"
               />
@@ -113,6 +147,41 @@ export default function Navbar() {
                 </button>
               )}
             </div>
+
+            {/* Live Autocomplete Dropdown */}
+            {isSearchFocused && searchSuggestions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50 animate-scale-in">
+                <div className="p-2 space-y-1">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 py-1 block">
+                    Qidiruv natijalari
+                  </span>
+                  {searchSuggestions.map((prod) => (
+                    <button
+                      key={prod.id}
+                      onClick={() => handleSelectProduct(prod)}
+                      className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={prod.image}
+                          alt={prod.name}
+                          className="w-10 h-10 rounded-lg object-cover bg-slate-100 dark:bg-slate-800"
+                        />
+                        <div>
+                          <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-1 group-hover:text-indigo-600">
+                            {prod.name}
+                          </h4>
+                          <span className="text-[11px] font-extrabold text-indigo-600 dark:text-indigo-400">
+                            {prod.price.toLocaleString()} so'm
+                          </span>
+                        </div>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Action Buttons */}
@@ -234,4 +303,3 @@ export default function Navbar() {
     </header>
   );
 }
-

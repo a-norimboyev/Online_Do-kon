@@ -9,8 +9,11 @@ import {
   ArrowRight,
   Tag,
   CheckCircle2,
-  AlertCircle
+  Truck,
+  Sparkles
 } from 'lucide-react';
+
+const FREE_DELIVERY_THRESHOLD = 500000; // 500,000 so'm for free delivery
 
 export default function CartDrawer() {
   const {
@@ -46,6 +49,9 @@ export default function CartDrawer() {
     setIsCartOpen(false);
     setIsCheckoutOpen(true);
   };
+
+  const remainingForFreeDelivery = Math.max(0, FREE_DELIVERY_THRESHOLD - cartSubtotal);
+  const deliveryProgressPercent = Math.min(100, Math.round((cartSubtotal / FREE_DELIVERY_THRESHOLD) * 100));
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden bg-black/60 backdrop-blur-sm flex justify-end animate-fade-in">
@@ -87,6 +93,40 @@ export default function CartDrawer() {
             </button>
           </div>
         </div>
+
+        {/* Free Delivery Progress Bar */}
+        {cart.length > 0 && (
+          <div className="px-5 py-3.5 bg-indigo-50/70 dark:bg-indigo-950/40 border-b border-indigo-100/80 dark:border-indigo-900/40">
+            <div className="flex items-center justify-between text-xs font-semibold mb-1.5">
+              <div className="flex items-center gap-1.5">
+                <Truck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                {remainingForFreeDelivery === 0 ? (
+                  <span className="text-emerald-700 dark:text-emerald-300 font-bold flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    Tabriklaymiz! Yetkazib berish BEPUL!
+                  </span>
+                ) : (
+                  <span className="text-slate-700 dark:text-slate-200">
+                    Bepul yetkazish uchun yana <strong className="text-indigo-600 dark:text-indigo-400">{remainingForFreeDelivery.toLocaleString()} so'm</strong>
+                  </span>
+                )}
+              </div>
+              <span className="text-[11px] text-slate-500">{deliveryProgressPercent}%</span>
+            </div>
+
+            {/* Progress Track */}
+            <div className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div
+                className={`h-full transition-all duration-500 rounded-full ${
+                  remainingForFreeDelivery === 0
+                    ? 'bg-emerald-500'
+                    : 'bg-gradient-to-r from-indigo-500 to-indigo-600'
+                }`}
+                style={{ width: `${deliveryProgressPercent}%` }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Content */}
         {cart.length === 0 ? (
@@ -247,4 +287,3 @@ export default function CartDrawer() {
     </div>
   );
 }
-

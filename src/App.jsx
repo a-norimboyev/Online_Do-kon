@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from './context/StoreContext';
 import Navbar from './components/Navbar';
 import BannerCarousel from './components/BannerCarousel';
@@ -13,13 +13,30 @@ import TrackOrderModal from './components/TrackOrderModal';
 import ToastContainer from './components/Toast';
 import Footer from './components/Footer';
 import AdminLayout from './admin/AdminLayout';
-import { ShoppingBag, SearchX } from 'lucide-react';
+import { ShoppingBag, SearchX, ArrowUp } from 'lucide-react';
 
 function Storefront() {
   const { filteredProducts, searchQuery, selectedCategory, setSelectedCategory, setSearchQuery } = useStore();
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 400) {
+        setShowBackToTop(true);
+      } else {
+        setShowBackToTop(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
-    <div className="min-h-screen flex flex-col justify-between">
+    <div className="min-h-screen flex flex-col justify-between relative">
       <Navbar />
 
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
@@ -64,6 +81,18 @@ function Storefront() {
 
       <Footer />
 
+      {/* Floating Back to Top Button */}
+      {showBackToTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-6 left-6 z-40 p-3.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-500/30 transition-all hover:scale-110 active:scale-95 animate-scale-in"
+          title="Yuqoriga qaytish"
+          aria-label="Yuqoriga qaytish"
+        >
+          <ArrowUp className="w-5 h-5" />
+        </button>
+      )}
+
       {/* Global Modals & Drawers */}
       <CartDrawer />
       <WishlistModal />
@@ -91,4 +120,3 @@ export default function App() {
 
   return <Storefront />;
 }
-

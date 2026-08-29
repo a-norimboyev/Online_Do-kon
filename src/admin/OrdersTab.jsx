@@ -12,11 +12,13 @@ import {
   MapPin,
   CreditCard,
   Phone,
-  User
+  User,
+  Download,
+  FileSpreadsheet
 } from 'lucide-react';
 
 export default function OrdersTab() {
-  const { orders, updateOrderStatus, setLatestReceipt } = useStore();
+  const { orders, updateOrderStatus, setLatestReceipt, showToast } = useStore();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
@@ -36,16 +38,60 @@ export default function OrdersTab() {
     return true;
   });
 
+  // Export to Excel / CSV
+  const handleExportCSV = () => {
+    if (!orders || orders.length === 0) {
+      showToast("Eksport qilish uchun buyurtmalar yo'q!", "info");
+      return;
+    }
+
+    const headers = ["Buyurtma ID", "Sana", "Xaridor", "Telefon", "Viloyat", "Manzil", "Mahsulotlar", "Jami Summa (so'm)", "To'lov Turi", "Holat"];
+    const rows = orders.map(ord => [
+      `"${ord.id}"`,
+      `"${new Date(ord.createdAt).toLocaleString('uz-UZ')}"`,
+      `"${ord.customerName}"`,
+      `"${ord.phone}"`,
+      `"${ord.region}"`,
+      `"${ord.address.replace(/"/g, '""')}"`,
+      `"${ord.items.map(i => `${i.name} (${i.quantity} dona)`).join('; ')}"`,
+      `"${ord.total}"`,
+      `"${ord.paymentMethod}"`,
+      `"${ord.status}"`
+    ]);
+
+    const csvContent = "\uFEFF" + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Buyurtmalar_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast("Buyurtmalar ro'yxati Excel (.csv) formatida yuklab olindi!", "success");
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-black text-slate-900 dark:text-white">
-          Buyurtmalar Nazorati (Orders)
-        </h1>
-        <p className="text-xs text-slate-400 mt-1">
-          Barcha kelib tushgan buyurtmalarni ko'rish, holatini o'zgartirish va cheklarni chop etish
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white">
+            Buyurtmalar Nazorati (Orders)
+          </h1>
+          <p className="text-xs text-slate-400 mt-1">
+            Barcha kelib tushgan buyurtmalarni ko'rish, holatini o'zgartirish va Excelga eksport qilish
+          </p>
+        </div>
+
+        <button
+          onClick={handleExportCSV}
+          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all hover:scale-105"
+          title="Barcha buyurtmalarni Excel (.csv) fayl qilib yuklab olish"
+        >
+          <FileSpreadsheet className="w-4 h-4" />
+          <span>Excel (.csv) ga yuklash</span>
+        </button>
       </div>
 
       {/* Filter and Status tabs */}
@@ -61,14 +107,14 @@ export default function OrdersTab() {
           />
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
           {['all', 'Yangi', 'Tayyorlanmoqda', 'Yetkazilmoqda', 'Yetkazib berildi', 'Bekor qilindi'].map((st) => (
             <button
               key={st}
               onClick={() => setSelectedStatus(st)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-colors ${
                 selectedStatus === st
-                  ? 'bg-amber-500 text-white'
+                  ? 'bg-amber-500 text-white shadow-sm'
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
               }`}
             >
@@ -257,4 +303,3 @@ export default function OrdersTab() {
     </div>
   );
 }
-
