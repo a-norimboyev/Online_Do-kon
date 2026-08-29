@@ -10,10 +10,134 @@ export const INITIAL_CATEGORIES = [
 ];
 
 export const INITIAL_PRODUCTS = [
+  // --- UZUM MARKET MASHHUR MAHSULOTLARI ---
+  {
+    id: 'uzum-prod-1',
+    name: 'Smartfon Xiaomi Redmi Note 13 Pro 8/256 GB',
+    title: 'Smartfon Xiaomi Redmi Note 13 Pro 8/256 GB',
+    category: 'smartphones',
+    price: 3200000,
+    oldPrice: 3800000,
+    old_price: 3800000,
+    monthlyPrice: 310000,
+    discount: 16,
+    rating: 4.9,
+    reviewsCount: 124,
+    reviews_count: 124,
+    stock: 25,
+    badge: 'Xit savdo',
+    image: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=800&auto=format&fit=crop&q=80',
+    gallery: [
+      'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=800&auto=format&fit=crop&q=80'
+    ],
+    description: "200 MP ultra-tiniq kamera, 120Hz AMOLED displey va 67W tezkor quvvatlash bilan jihozlangan ommabop smartfon.",
+    specs: {
+      "Ekran": "6.67 AMOLED, 120Hz",
+      "Protsessor": "MediaTek Helio G99-Ultra",
+      "Xotira": "8GB RAM / 256GB doimiy",
+      "Kamera": "200MP + 8MP + 2MP",
+      "Akkumulyator": "5000 mAh (67W tezkor)",
+      "Kafolat": "1 yil rasmiy"
+    },
+    reviews: [
+      { id: 'rev-u1', author: 'Jasur Bek', rating: 5, date: '2026-08-25', comment: "Narxiga nisbatan juda zo'r telefon, kamerasi ajoyib rasm oladi." }
+    ]
+  },
+  {
+    id: 'uzum-prod-2',
+    name: 'Erkaklar futbolkasi Oversize, paxta',
+    title: 'Erkaklar futbolkasi Oversize, paxta',
+    category: 'clothing',
+    price: 89000,
+    oldPrice: 150000,
+    old_price: 150000,
+    monthlyPrice: 9000,
+    discount: 41,
+    rating: 4.7,
+    reviewsCount: 450,
+    reviews_count: 450,
+    stock: 40,
+    badge: 'Chegirma',
+    image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=800&auto=format&fit=crop&q=80',
+    gallery: [
+      'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=800&auto=format&fit=crop&q=80'
+    ],
+    description: "100% tabiiy paxtadan tayyorlangan, zamonaviy erkin bichimdagi erkaklar futbolkasi.",
+    specs: {
+      "Material": "100% paxta",
+      "Bichim": "Oversize",
+      "Mavsum": "Bahor / Yoz",
+      "Ishlab chiqaruvchi": "O'zbekiston"
+    },
+    reviews: [
+      { id: 'rev-u2', author: 'Dilshod R.', rating: 5, date: '2026-08-22', comment: "Matosi yumshoq, yuvganda rangi ketmadi. Tavsiya qilaman!" }
+    ]
+  },
+  {
+    id: 'uzum-prod-3',
+    name: 'Simsiz quloqchinlar Apple AirPods 3',
+    title: 'Simsiz quloqchinlar Apple AirPods 3',
+    category: 'accessories',
+    price: 2400000,
+    oldPrice: 2900000,
+    old_price: 2900000,
+    monthlyPrice: 230000,
+    discount: 17,
+    rating: 5.0,
+    reviewsCount: 89,
+    reviews_count: 89,
+    stock: 18,
+    badge: 'Xit savdo',
+    image: 'https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=800&auto=format&fit=crop&q=80',
+    gallery: [
+      'https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=800&auto=format&fit=crop&q=80'
+    ],
+    description: "Spatial Audio fazoviy audio texnologiyasi, suvga chidamlilik va 30 soatgacha umumiy ishlash vaqti.",
+    specs: {
+      "Turi": "TWS simsiz quloqchin",
+      "Batareya": "30 soatgacha",
+      "Kafolat": "1 yil",
+      "MagSafe": "Qo'llab-quvvatlaydi"
+    },
+    reviews: [
+      { id: 'rev-u3', author: 'Alisher K.', rating: 5, date: '2026-08-26', comment: "Original mahsulot, ovozi juda tiniq va sifatli." }
+    ]
+  },
+  {
+    id: 'uzum-prod-4',
+    name: "Termos zanglamaydigan po'latdan, 500 ml",
+    title: "Termos zanglamaydigan po'latdan, 500 ml",
+    category: 'appliances',
+    price: 65000,
+    oldPrice: 120000,
+    old_price: 120000,
+    monthlyPrice: 7000,
+    discount: 46,
+    rating: 4.6,
+    reviewsCount: 32,
+    reviews_count: 32,
+    stock: 50,
+    badge: 'Chegirma',
+    image: 'https://images.unsplash.com/photo-1517256064527-09c73fc73e38?w=800&auto=format&fit=crop&q=80',
+    gallery: [
+      'https://images.unsplash.com/photo-1517256064527-09c73fc73e38?w=800&auto=format&fit=crop&q=80'
+    ],
+    description: "Issiq va sovuq ichimliklar haroratini 12 soatgacha saqlab beruvchi ixcham termos.",
+    specs: {
+      "Hajm": "500 ml",
+      "Material": "Oziq-ovqat po'lati 304",
+      "Harorat saqlash": "12 soatgacha"
+    },
+    reviews: [
+      { id: 'rev-u4', author: 'Nigora A.', rating: 5, date: '2026-08-24', comment: "Haroratni yaxshi ushlaydi, sumkaga sig'adi." }
+    ]
+  },
+
   // --- SMARTFONLAR VA GADJETLAR ---
   {
     id: 'prod-1',
     name: 'Apple iPhone 15 Pro Max 256GB Natural Titanium',
+    title: 'Apple iPhone 15 Pro Max 256GB Natural Titanium',
     category: 'smartphones',
     price: 15499000,
     oldPrice: 17200000,
