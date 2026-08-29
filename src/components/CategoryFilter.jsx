@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { useStore } from '../context/StoreContext';
 import {
   LayoutGrid,
@@ -10,9 +10,10 @@ import {
   Sparkles,
   Watch,
   SlidersHorizontal,
-  Flame,
   Percent,
-  CheckCircle2
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 const ICON_MAP = {
@@ -40,29 +41,62 @@ export default function CategoryFilter() {
     filteredProducts
   } = useStore();
 
+  const scrollRef = useRef(null);
+
+  const scroll = (direction) => {
+    if (scrollRef.current) {
+      const scrollAmount = direction === 'left' ? -250 : 250;
+      scrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
+
   return (
     <div id="catalog-section" className="space-y-6 pt-4">
-      {/* Category Chips Carousel */}
-      <div className="flex items-center gap-2.5 overflow-x-auto pb-2 scrollbar-none">
-        {categories.map(cat => {
-          const IconComp = ICON_MAP[cat.icon] || LayoutGrid;
-          const isSelected = selectedCategory === cat.id;
+      {/* Category Chips with Navigation Buttons and Hidden Scrollbar */}
+      <div className="relative group/chips flex items-center">
+        {/* Left scroll button */}
+        <button
+          onClick={() => scroll('left')}
+          className="hidden sm:flex absolute -left-3 z-10 p-2 rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 shadow-md border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all opacity-0 group-hover/chips:opacity-100"
+          aria-label="Chapga surish"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
 
-          return (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-medium whitespace-nowrap transition-all duration-200 shadow-sm ${
-                isSelected
-                  ? 'bg-indigo-600 text-white shadow-indigo-500/25 scale-[1.02]'
-                  : 'bg-white dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700'
-              }`}
-            >
-              <IconComp className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-indigo-500 dark:text-indigo-400'}`} />
-              <span>{cat.name}</span>
-            </button>
-          );
-        })}
+        {/* Categories container */}
+        <div
+          ref={scrollRef}
+          className="flex items-center gap-2.5 overflow-x-auto py-1 px-1 no-scrollbar scroll-smooth w-full"
+        >
+          {categories.map(cat => {
+            const IconComp = ICON_MAP[cat.icon] || LayoutGrid;
+            const isSelected = selectedCategory === cat.id;
+
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-medium whitespace-nowrap transition-all duration-200 flex-shrink-0 ${
+                  isSelected
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25 scale-[1.02]'
+                    : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-800 shadow-sm'
+                }`}
+              >
+                <IconComp className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-indigo-500 dark:text-indigo-400'}`} />
+                <span>{cat.name}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Right scroll button */}
+        <button
+          onClick={() => scroll('right')}
+          className="hidden sm:flex absolute -right-3 z-10 p-2 rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 shadow-md border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all opacity-0 group-hover/chips:opacity-100"
+          aria-label="O'ngga surish"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Control bar: Quick filters, count, sort dropdown */}
@@ -118,4 +152,3 @@ export default function CategoryFilter() {
     </div>
   );
 }
-

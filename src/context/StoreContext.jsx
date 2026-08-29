@@ -35,7 +35,13 @@ export const StoreProvider = ({ children }) => {
   // Core Data States with LocalStorage Persistence
   const [products, setProducts] = useState(() => {
     const saved = localStorage.getItem('online_dokon_products');
-    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.length >= INITIAL_PRODUCTS.length) return parsed;
+      } catch (e) {}
+    }
+    return INITIAL_PRODUCTS;
   });
 
   const [categories, setCategories] = useState(() => {
