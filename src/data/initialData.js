@@ -388,3 +388,4 @@ export const BANNERS = [
     categoryTarget: 'books'
   }
 ];
+
