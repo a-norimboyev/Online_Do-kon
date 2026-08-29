@@ -12,9 +12,12 @@ import {
   X,
   Store,
   Sparkles,
-  PhoneCall,
-  Star,
-  ArrowRight
+  MapPin,
+  ChevronDown,
+  User,
+  LayoutGrid,
+  ArrowRight,
+  Globe
 } from 'lucide-react';
 
 export default function Navbar() {
@@ -38,8 +41,9 @@ export default function Navbar() {
     setSelectedProductDetail
   } = useStore();
 
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [selectedCity, setSelectedCity] = useState('Toshkent');
   const searchContainerRef = useRef(null);
 
   // Filter top matching search suggestions
@@ -47,10 +51,9 @@ export default function Navbar() {
     ? products.filter(p => {
         const q = searchQuery.toLowerCase();
         return p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q);
-      }).slice(0, 5)
+      }).slice(0, 6)
     : [];
 
-  // Close search dropdown on click outside
   useEffect(() => {
     function handleClickOutside(e) {
       if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
@@ -67,65 +70,80 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-white/90 dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-slate-800 transition-colors duration-200">
-      {/* Top micro-bar */}
-      <div className="bg-indigo-600 text-white text-xs font-medium py-1.5 px-4">
+    <header className="sticky top-0 z-40 w-full bg-white dark:bg-[#1F2026] border-b border-slate-100 dark:border-slate-800 transition-colors shadow-sm">
+      {/* 1. Top Micro Bar (Exact Uzum Market) */}
+      <div className="bg-[#F2F4F7] dark:bg-[#18191E] text-[13px] text-slate-600 dark:text-slate-400 py-1.5 px-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>O'zbekiston bo'ylab 1-2 kunda tezkor yetkazib berish xizmati!</span>
-            </span>
-          </div>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-5">
+            <button className="flex items-center gap-1 font-medium hover:text-[#7000FF] transition-colors">
+              <MapPin className="w-3.5 h-3.5 text-slate-500" />
+              <span>Shahar: <u className="font-bold underline text-slate-800 dark:text-slate-200">{selectedCity}</u></span>
+              <ChevronDown className="w-3.5 h-3.5" />
+            </button>
             <button
               onClick={() => setIsTrackOrderOpen(true)}
-              className="flex items-center gap-1 hover:text-amber-200 transition-colors"
+              className="hidden sm:flex items-center gap-1 hover:text-[#7000FF] transition-colors"
             >
-              <Truck className="w-3.5 h-3.5" />
-              <span>Buyurtmani kuzatish</span>
+              <span>Topshirish punktlari</span>
             </button>
-            <a
-              href="tel:+998712000000"
-              className="hidden sm:flex items-center gap-1 hover:text-amber-200 transition-colors"
+          </div>
+
+          <div className="flex items-center gap-4 sm:gap-6 text-xs">
+            <span className="hidden md:inline hover:text-[#7000FF] cursor-pointer">Sotuvchi bo'lish</span>
+            <span className="hidden md:inline hover:text-[#7000FF] cursor-pointer">Topshirish punktini ochish</span>
+            <button
+              onClick={() => setIsTrackOrderOpen(true)}
+              className="hover:text-[#7000FF] cursor-pointer"
             >
-              <PhoneCall className="w-3.5 h-3.5" />
-              <span>+998 (71) 200-00-00</span>
-            </a>
+              Buyurtmalarim
+            </button>
+            <div className="flex items-center gap-1 font-semibold text-slate-800 dark:text-slate-200 cursor-pointer">
+              <span>🇺🇿 O'zbekcha</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Main Navbar */}
+      {/* 2. Main Uzum Navbar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20 gap-4">
-          {/* Logo */}
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <button
-              onClick={() => {
-                setCurrentView('store');
-                setSelectedCategory('all');
-                setSearchQuery('');
-              }}
-              className="flex items-center gap-2.5 text-left group"
-            >
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-transform">
-                <ShoppingBag className="w-6 h-6" />
+        <div className="flex items-center justify-between h-20 gap-3 sm:gap-6">
+          {/* Logo (Uzum Market Style) */}
+          <button
+            onClick={() => {
+              setCurrentView('store');
+              setSelectedCategory('all');
+              setSearchQuery('');
+            }}
+            className="flex items-center gap-2 flex-shrink-0 group"
+          >
+            {/* Uzum Violet Logo Mark */}
+            <div className="w-9 h-9 rounded-full bg-[#7000FF] flex items-center justify-center text-white shadow-md shadow-purple-500/20 group-hover:scale-105 transition-transform">
+              <div className="w-4 h-4 rounded-full border-2 border-white flex items-center justify-center">
+                <div className="w-1.5 h-1.5 rounded-full bg-white" />
               </div>
-              <div>
-                <span className="text-xl font-black tracking-tight bg-gradient-to-r from-indigo-600 to-indigo-400 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">
-                  Online Do'kon
-                </span>
-                <span className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest -mt-1">
-                  Internet Magazin
-                </span>
-              </div>
-            </button>
-          </div>
+            </div>
+            <div className="flex items-baseline">
+              <span className="text-2xl font-extrabold tracking-tight text-[#7000FF] lowercase font-sans">
+                uzum
+              </span>
+              <span className="text-2xl font-normal tracking-tight text-slate-800 dark:text-white lowercase ml-1">
+                market
+              </span>
+            </div>
+          </button>
 
-          {/* Search bar with Live Autocomplete Dropdown */}
-          <div ref={searchContainerRef} className="hidden md:flex flex-1 max-w-xl mx-4 relative">
-            <div className="relative w-full">
+          {/* Catalog Button */}
+          <button
+            onClick={() => setIsCatalogOpen(!isCatalogOpen)}
+            className="hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#E8E3FF] hover:bg-[#DBCFFF] text-[#7000FF] dark:bg-[#2F1B5C] dark:text-[#B899FF] font-bold text-sm transition-all"
+          >
+            {isCatalogOpen ? <X className="w-5 h-5" /> : <LayoutGrid className="w-5 h-5" />}
+            <span>Katalog</span>
+          </button>
+
+          {/* Search Input Bar with Autocomplete Dropdown */}
+          <div ref={searchContainerRef} className="flex-1 max-w-2xl relative">
+            <div className="relative flex items-center w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden focus-within:border-[#7000FF] focus-within:ring-2 focus-within:ring-[#7000FF]/20 transition-all">
               <input
                 type="text"
                 value={searchQuery}
@@ -134,18 +152,22 @@ export default function Navbar() {
                   setSearchQuery(e.target.value);
                   setIsSearchFocused(true);
                 }}
-                placeholder="20 000+ mahsulotlar ichidan qidiring (masalan: iPhone, noutbuk, kitob)..."
-                className="w-full pl-11 pr-10 py-2.5 rounded-full bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-900 transition-all dark:text-slate-100"
+                placeholder="Mahsulotlar va turkumlar izlash..."
+                className="w-full pl-4 pr-12 py-2.5 bg-transparent text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none"
               />
-              <Search className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 transform -translate-y-1/2" />
-              {searchQuery && (
+              {searchQuery ? (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 absolute right-3 top-1/2 transform -translate-y-1/2"
+                  className="p-1 text-slate-400 hover:text-slate-600 mr-2"
                 >
                   <X className="w-4 h-4" />
                 </button>
-              )}
+              ) : null}
+              <button
+                className="px-5 py-2.5 bg-[#F2F4F7] dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center border-l border-slate-200 dark:border-slate-700"
+              >
+                <Search className="w-4 h-4" />
+              </button>
             </div>
 
             {/* Live Autocomplete Dropdown */}
@@ -159,7 +181,7 @@ export default function Navbar() {
                     <button
                       key={prod.id}
                       onClick={() => handleSelectProduct(prod)}
-                      className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left group"
+                      className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-[#F2F4F7] dark:hover:bg-slate-800 transition-colors text-left group"
                     >
                       <div className="flex items-center gap-3">
                         <img
@@ -168,15 +190,15 @@ export default function Navbar() {
                           className="w-10 h-10 rounded-lg object-cover bg-slate-100 dark:bg-slate-800"
                         />
                         <div>
-                          <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-1 group-hover:text-indigo-600">
+                          <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-1 group-hover:text-[#7000FF]">
                             {prod.name}
                           </h4>
-                          <span className="text-[11px] font-extrabold text-indigo-600 dark:text-indigo-400">
+                          <span className="text-[11px] font-black text-[#7000FF]">
                             {prod.price.toLocaleString()} so'm
                           </span>
                         </div>
                       </div>
-                      <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
+                      <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-[#7000FF] group-hover:translate-x-1 transition-all" />
                     </button>
                   ))}
                 </div>
@@ -184,117 +206,130 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Dark / Light Toggle */}
+          {/* Right Action Icons (Kirish, Saralangan, Savat, Admin) */}
+          <div className="flex items-center gap-3 sm:gap-5">
+            {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className="p-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               title={theme === 'dark' ? "Kunduzgi rejim" : "Tungi rejim"}
             >
               {theme === 'dark' ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5" />}
             </button>
 
-            {/* Wishlist Button */}
+            {/* Profile / Kirish */}
             <button
-              onClick={() => setIsWishlistOpen(true)}
-              className="relative p-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              title="Sevimlilar ro'yxati"
+              onClick={() => setCurrentView(currentView === 'store' ? 'admin' : 'store')}
+              className="hidden lg:flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-[#7000FF] transition-colors"
             >
-              <Heart className="w-5 h-5" />
-              {wishlist.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[11px] font-bold w-5 h-5 rounded-full flex items-center justify-center animate-scale-in">
-                  {wishlist.length}
-                </span>
-              )}
+              <User className="w-5 h-5" />
+              <span>{currentView === 'admin' ? "Do'kon" : "Kirish"}</span>
             </button>
 
-            {/* Cart Button */}
+            {/* Wishlist */}
             <button
-              onClick={() => setIsCartOpen(true)}
-              className="relative flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-100 dark:border-indigo-800/40 transition-colors font-medium text-sm"
-              title="Savat"
+              onClick={() => setIsWishlistOpen(true)}
+              className="flex flex-col sm:flex-row items-center gap-1 text-slate-700 dark:text-slate-200 hover:text-[#7000FF] transition-colors relative"
             >
               <div className="relative">
-                <ShoppingBag className="w-5 h-5" />
+                <Heart className="w-6 h-6" />
+                {wishlist.length > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-[#7000FF] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-scale-in">
+                    {wishlist.length}
+                  </span>
+                )}
+              </div>
+              <span className="hidden sm:inline text-xs font-medium">Saralangan</span>
+            </button>
+
+            {/* Cart */}
+            <button
+              onClick={() => setIsCartOpen(true)}
+              className="flex flex-col sm:flex-row items-center gap-1 text-slate-700 dark:text-slate-200 hover:text-[#7000FF] transition-colors relative"
+            >
+              <div className="relative">
+                <ShoppingBag className="w-6 h-6" />
                 {totalCartCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-indigo-600 text-white text-[11px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-scale-in">
+                  <span className="absolute -top-1.5 -right-1.5 bg-[#7000FF] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-scale-in">
                     {totalCartCount}
                   </span>
                 )}
               </div>
-              <span className="hidden sm:inline font-semibold">
-                {cartSubtotal > 0 ? `${cartSubtotal.toLocaleString()} so'm` : "Savat"}
+              <span className="hidden sm:inline text-xs font-medium">
+                {totalCartCount > 0 ? `Savat (${totalCartCount})` : "Savat"}
               </span>
             </button>
 
-            {/* Admin Switcher */}
+            {/* Admin Switcher Badge */}
             <button
               onClick={() => setCurrentView(currentView === 'store' ? 'admin' : 'store')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                 currentView === 'admin'
-                  ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/25 hover:bg-amber-600'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  ? 'bg-amber-500 text-white shadow-md'
+                  : 'bg-[#F2F4F7] dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-[#E8E3FF] hover:text-[#7000FF]'
               }`}
             >
-              {currentView === 'admin' ? (
-                <>
-                  <Store className="w-4 h-4" />
-                  <span className="hidden sm:inline">Do'konga qaytish</span>
-                </>
-              ) : (
-                <>
-                  <ShieldCheck className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
-                  <span className="hidden sm:inline">Admin Paneli</span>
-                </>
-              )}
+              <ShieldCheck className="w-4 h-4" />
+              <span className="hidden md:inline">{currentView === 'admin' ? "Do'kon" : "Admin"}</span>
             </button>
-
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-            >
-              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile Search Bar */}
-        <div className="md:hidden pb-3">
-          <div className="relative w-full">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Mahsulot qidirish..."
-              className="w-full pl-10 pr-8 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-slate-100"
-            />
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
           </div>
         </div>
       </div>
 
-      {/* Mobile Drawer Menu */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-4 space-y-3">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Kategoriyalar</p>
-          <div className="grid grid-cols-2 gap-2">
-            {categories.map(cat => (
+      {/* 3. Uzum Category Bar & Links */}
+      <div className="border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-[#1F2026]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-6 overflow-x-auto py-2.5 text-[13px] no-scrollbar whitespace-nowrap">
+            <button
+              onClick={() => { setSelectedCategory('all'); setCurrentView('store'); }}
+              className={`flex items-center gap-1.5 font-bold transition-colors ${
+                selectedCategory === 'all' ? 'text-[#7000FF]' : 'text-slate-700 dark:text-slate-300 hover:text-[#7000FF]'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-[#7000FF]" />
+              <span>Barcha mahsulotlar</span>
+            </button>
+
+            {categories.filter(c => c.id !== 'all').map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => {
                   setSelectedCategory(cat.id);
-                  setIsMobileMenuOpen(false);
                   setCurrentView('store');
                 }}
-                className={`text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`font-medium transition-colors ${
                   selectedCategory === cat.id
-                    ? 'bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 font-bold'
-                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                    ? 'text-[#7000FF] font-bold border-b-2 border-[#7000FF] pb-0.5'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 {cat.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Catalog Mega Dropdown */}
+      {isCatalogOpen && (
+        <div className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#1F2026] shadow-2xl animate-fade-in">
+          <div className="max-w-7xl mx-auto p-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => {
+                  setSelectedCategory(cat.id);
+                  setIsCatalogOpen(false);
+                  setCurrentView('store');
+                }}
+                className="flex items-center gap-3 p-3 rounded-2xl bg-[#F2F4F7] dark:bg-slate-800 hover:bg-[#E8E3FF] dark:hover:bg-[#2F1B5C] text-left group transition-all"
+              >
+                <div className="w-8 h-8 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center text-[#7000FF] font-bold text-xs">
+                  ★
+                </div>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-[#7000FF]">
+                  {cat.name}
+                </span>
               </button>
             ))}
           </div>

@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"node server/index.js\" \"vite\"",
+    "dev": "concurrently \"npm run server\" \"vite\"",
     "client": "vite",
     "server": "node server/index.js",
     "build": "vite build",

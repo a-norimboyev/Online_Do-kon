@@ -1,7 +1,6 @@
 const API_BASE = '/api';
 
 export const api = {
-  // Stats
   async getDashboardStats() {
     try {
       const res = await fetch(`${API_BASE}/stats/dashboard`);
@@ -14,7 +13,6 @@ export const api = {
     }
   },
 
-  // Products
   async getProducts(params = {}) {
     try {
       const query = new URLSearchParams(params).toString();
@@ -73,7 +71,6 @@ export const api = {
     }
   },
 
-  // Reviews
   async addReview(productId, reviewData) {
     try {
       const res = await fetch(`${API_BASE}/products/${productId}/reviews`, {
@@ -103,7 +100,6 @@ export const api = {
     }
   },
 
-  // Categories
   async getCategories() {
     try {
       const res = await fetch(`${API_BASE}/categories`);
@@ -161,7 +157,6 @@ export const api = {
     }
   },
 
-  // Orders
   async getOrders() {
     try {
       const res = await fetch(`${API_BASE}/orders`);
@@ -206,7 +201,6 @@ export const api = {
     }
   },
 
-  // Promos
   async getPromos() {
     try {
       const res = await fetch(`${API_BASE}/promos`);
@@ -248,7 +242,6 @@ export const api = {
     }
   },
 
-  // Reset
   async resetData() {
     try {
       const res = await fetch(`${API_BASE}/reset-data`, { method: 'POST' });

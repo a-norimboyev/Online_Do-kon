@@ -8,24 +8,29 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: {
-          50: '#eef2ff',
-          100: '#e0e7ff',
-          200: '#c7d2fe',
-          300: '#a5b4fc',
-          400: '#818cf8',
-          500: '#6366f1',
-          600: '#4f46e5',
-          700: '#4338ca',
-          800: '#3730a3',
-          900: '#312e81',
-          950: '#1e1b4b',
+        uzum: {
+          DEFAULT: '#7000FF',
+          hover: '#5E00D6',
+          light: '#F0EBFF',
+          accent: '#E8E3FF',
+          pink: '#FF007A',
+          yellow: '#FFFF00',
+          dark: '#1F2026',
+          grey: '#8B8E99',
+          lightGrey: '#F2F4F7'
         },
-        brand: {
-          green: '#10b981',
-          gold: '#f59e0b',
-          red: '#ef4444',
-          blue: '#3b82f6',
+        primary: {
+          50: '#F0EBFF',
+          100: '#E8E3FF',
+          200: '#D1C4FF',
+          300: '#B599FF',
+          400: '#9466FF',
+          500: '#7000FF',
+          600: '#5E00D6',
+          700: '#4D00B0',
+          800: '#3D008C',
+          900: '#2F006D',
+          950: '#1D0044',
         }
       },
       fontFamily: {
@@ -54,4 +59,3 @@ export default {
   },
   plugins: [],
 }
-
