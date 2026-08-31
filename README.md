@@ -30,6 +30,7 @@ Zamonaviy, qulay va to'liq o'zbek tilidagi elektron tijorat (E-commerce) platfor
 ### 2. 📊 Super Foydalanuvchi Admin Paneli
 * **Bosh sahifa (Dashboard)**: Jami daromad, buyurtmalar soni, ombor qoldig'i, savdo o'sish grafigi va toifalar diagrammasi.
 * **Tovarlar CRUD**: Yangi tovar va rasmlar qo'shish, tahrirlash, o'chirish, ombor zaxirasini nazorat qilish.
+* **🌐 Ochiq Internet API Import**: Jonli **DummyJSON API** (190+ tovar) va **FakeStore API** orqali tovarlar, rasmlar, sharhlar va parametrlarni valyuta kursiga qarab so'mda avtomatik do'konga import qilish.
 * **Kategoriyalar**: Yangi toifalar ochish va boshqarish.
 * **Buyurtmalar nazorati**: Tushgan barcha buyurtmalar ro'yxati va statusini o'zgartirish (*Yangi*, *Tayyorlanmoqda*, *Yetkazilmoqda*, *Yetkazib berildi*, *Bekor qilindi*).
 * **Promo-kodlar**: Chegirma kuponlarini yaratish.

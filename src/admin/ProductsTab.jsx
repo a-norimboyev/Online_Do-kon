@@ -12,14 +12,23 @@ import {
   Sparkles,
   FileSpreadsheet,
   Upload,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Globe,
+  DownloadCloud,
+  Loader2,
+  RefreshCw,
+  SlidersHorizontal,
+  CheckSquare,
+  Square
 } from 'lucide-react';
+import { externalApi } from '../services/externalApi';
 
 export default function ProductsTab() {
   const {
     products,
     categories,
     addProduct,
+    importProductsBulk,
     updateProduct,
     deleteProduct,
     showToast
@@ -53,6 +62,89 @@ export default function ProductsTab() {
     }
     return true;
   });
+
+  // External API Modal State
+  const [isApiModalOpen, setIsApiModalOpen] = useState(false);
+  const [apiSource, setApiSource] = useState('dummyjson'); // 'dummyjson' | 'fakestore'
+  const [apiLoading, setApiLoading] = useState(false);
+  const [apiProducts, setApiProducts] = useState([]);
+  const [apiCategories, setApiCategories] = useState([]);
+  const [selectedApiCat, setSelectedApiCat] = useState('');
+  const [apiSearch, setApiSearch] = useState('');
+  const [selectedApiIds, setSelectedApiIds] = useState([]);
+  const [customExchangeRate, setCustomExchangeRate] = useState(12800);
+
+  const handleOpenApiModal = async () => {
+    setIsApiModalOpen(true);
+    setApiLoading(true);
+    try {
+      externalApi.setExchangeRate(customExchangeRate);
+      const [prodsData, catsData] = await Promise.all([
+        externalApi.fetchDummyJsonProducts({ limit: 20 }),
+        externalApi.fetchDummyJsonCategories()
+      ]);
+      setApiProducts(prodsData.products || []);
+      setApiCategories(catsData || []);
+      setSelectedApiIds((prodsData.products || []).map(p => p.id));
+    } catch (e) {
+      showToast("API orqali tovarlarni yuklab bo'lmadi", "error");
+    } finally {
+      setApiLoading(false);
+    }
+  };
+
+  const handleFetchFromApi = async (source = apiSource, category = selectedApiCat, query = apiSearch) => {
+    setApiLoading(true);
+    try {
+      externalApi.setExchangeRate(customExchangeRate);
+      if (source === 'fakestore') {
+        const data = await externalApi.fetchFakeStoreProducts();
+        let filtered = data;
+        if (query.trim()) {
+          const q = query.toLowerCase();
+          filtered = filtered.filter(p => p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q));
+        }
+        setApiProducts(filtered);
+        setSelectedApiIds(filtered.map(p => p.id));
+      } else {
+        const data = await externalApi.fetchDummyJsonProducts({
+          limit: 30,
+          category: category,
+          search: query
+        });
+        setApiProducts(data.products || []);
+        setSelectedApiIds((data.products || []).map(p => p.id));
+      }
+    } catch (e) {
+      showToast("API so'rovida xatolik yuz berdi", "error");
+    } finally {
+      setApiLoading(false);
+    }
+  };
+
+  const handleToggleSelectApiId = (id) => {
+    setSelectedApiIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAllApi = () => {
+    if (selectedApiIds.length === apiProducts.length) {
+      setSelectedApiIds([]);
+    } else {
+      setSelectedApiIds(apiProducts.map(p => p.id));
+    }
+  };
+
+  const handleImportSelected = () => {
+    const toImport = apiProducts.filter(p => selectedApiIds.includes(p.id));
+    if (toImport.length === 0) {
+      showToast("Hech bo'lmaganda bitta mahsulotni belgilang!", "info");
+      return;
+    }
+    importProductsBulk(toImport);
+    setIsApiModalOpen(false);
+  };
 
   const handleOpenAdd = () => {
     setEditingProductId(null);
@@ -195,6 +287,15 @@ export default function ProductsTab() {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={handleOpenApiModal}
+            className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-600/20 transition-all hover:scale-105"
+            title="Internetdagi ochiq API (DummyJSON / FakeStore) orqali tovarlarni import qilish"
+          >
+            <Globe className="w-4 h-4" />
+            <span>Internetdan yuklash (API)</span>
+          </button>
+
           <button
             onClick={handleExportProductsCSV}
             className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all hover:scale-105"
@@ -559,6 +660,269 @@ export default function ProductsTab() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Open API Products Import Modal */}
+      {isApiModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-fade-in">
+          <div
+            className="relative w-full max-w-5xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-6 max-h-[92vh] flex flex-col animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400">
+                  <Globe className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>Ochiq Internet API orqali tovarlar importi</span>
+                    <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 font-black">
+                      Jonli API
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    DummyJSON & FakeStoreAPI dan rasmlari, tavsiflari va narxlari bilan to'g'ridan-to'g'ri do'konga yuklash
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsApiModalOpen(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Controls Bar */}
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                {/* Source Tabs */}
+                <div className="flex items-center gap-2 bg-slate-200/80 dark:bg-slate-800 p-1 rounded-2xl text-xs font-bold">
+                  <button
+                    onClick={() => {
+                      setApiSource('dummyjson');
+                      handleFetchFromApi('dummyjson', '', '');
+                    }}
+                    className={`px-3 py-1.5 rounded-xl transition-all ${
+                      apiSource === 'dummyjson'
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                    }`}
+                  >
+                    DummyJSON (190+ tovar)
+                  </button>
+                  <button
+                    onClick={() => {
+                      setApiSource('fakestore');
+                      handleFetchFromApi('fakestore', '', '');
+                    }}
+                    className={`px-3 py-1.5 rounded-xl transition-all ${
+                      apiSource === 'fakestore'
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                    }`}
+                  >
+                    FakeStoreAPI
+                  </button>
+                </div>
+
+                {/* Exchange Rate Input */}
+                <div className="flex items-center gap-2 text-xs bg-white dark:bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <span className="text-slate-400 font-medium">1 USD =</span>
+                  <input
+                    type="number"
+                    value={customExchangeRate}
+                    onChange={(e) => {
+                      const val = Number(e.target.value) || 12800;
+                      setCustomExchangeRate(val);
+                      externalApi.setExchangeRate(val);
+                    }}
+                    className="w-20 font-bold text-slate-800 dark:text-slate-100 bg-transparent focus:outline-none"
+                  />
+                  <span className="text-slate-400">so'm</span>
+                </div>
+              </div>
+
+              {/* Filter and Search */}
+              <div className="flex flex-col sm:flex-row items-center gap-3 text-xs">
+                <div className="relative flex-1 w-full">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 transform -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={apiSearch}
+                    onChange={(e) => setApiSearch(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleFetchFromApi(apiSource, selectedApiCat, apiSearch);
+                    }}
+                    placeholder="API bo'yicha tovar qidirish (Enter bosing)..."
+                    className="w-full pl-10 pr-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none dark:text-slate-100"
+                  />
+                </div>
+
+                {apiSource === 'dummyjson' && apiCategories.length > 0 && (
+                  <select
+                    value={selectedApiCat}
+                    onChange={(e) => {
+                      setSelectedApiCat(e.target.value);
+                      handleFetchFromApi('dummyjson', e.target.value, apiSearch);
+                    }}
+                    className="w-full sm:w-48 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-semibold focus:ring-2 focus:ring-indigo-500 focus:outline-none dark:text-slate-100"
+                  >
+                    <option value="">Barcha kategoriyalar</option>
+                    {apiCategories.map((c) => {
+                      const slug = typeof c === 'string' ? c : c.slug;
+                      const name = typeof c === 'string' ? c : c.name;
+                      return (
+                        <option key={slug} value={slug}>
+                          {name}
+                        </option>
+                      );
+                    })}
+                  </select>
+                )}
+
+                <button
+                  onClick={() => handleFetchFromApi(apiSource, selectedApiCat, apiSearch)}
+                  className="w-full sm:w-auto px-4 py-2 rounded-xl bg-slate-900 hover:bg-black text-white dark:bg-indigo-600 dark:hover:bg-indigo-700 font-bold flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${apiLoading ? 'animate-spin' : ''}`} />
+                  <span>Qidirish</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Products Selection List / Grid */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 min-h-[320px]">
+              {apiLoading ? (
+                <div className="flex flex-col items-center justify-center py-20 text-slate-400 space-y-3">
+                  <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+                  <p className="text-xs font-semibold">Internet API dan tovarlar olinmoqda...</p>
+                </div>
+              ) : apiProducts.length === 0 ? (
+                <div className="text-center py-16 text-slate-400">
+                  <p className="text-sm font-semibold">Hech qanday tovar topilmadi</p>
+                  <p className="text-xs mt-1">Boshqa so'rov yoki toifani tanlab ko'ring</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Select All Bar */}
+                  <div className="flex items-center justify-between text-xs pb-2 border-b border-slate-100 dark:border-slate-800">
+                    <button
+                      onClick={handleSelectAllApi}
+                      className="flex items-center gap-2 font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+                    >
+                      {selectedApiIds.length === apiProducts.length ? (
+                        <CheckSquare className="w-4 h-4" />
+                      ) : (
+                        <Square className="w-4 h-4" />
+                      )}
+                      <span>
+                        {selectedApiIds.length === apiProducts.length
+                          ? "Barcha belgilashni bekor qilish"
+                          : "Barchasini belgilash"}
+                      </span>
+                    </button>
+
+                    <span className="text-slate-400 font-medium">
+                      Tanlangan: <strong className="text-indigo-600 dark:text-indigo-400">{selectedApiIds.length}</strong> / {apiProducts.length} ta tovar
+                    </span>
+                  </div>
+
+                  {/* Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {apiProducts.map((p) => {
+                      const isSelected = selectedApiIds.includes(p.id);
+                      return (
+                        <div
+                          key={p.id}
+                          onClick={() => handleToggleSelectApiId(p.id)}
+                          className={`cursor-pointer p-3 rounded-2xl border transition-all flex gap-3 select-none ${
+                            isSelected
+                              ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-500 dark:border-indigo-600 shadow-sm'
+                              : 'bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/80 hover:border-slate-300'
+                          }`}
+                        >
+                          <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-700 flex-shrink-0">
+                            <img
+                              src={p.image}
+                              alt={p.name}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                            />
+                            {isSelected && (
+                              <div className="absolute inset-0 bg-indigo-600/30 flex items-center justify-center">
+                                <Check className="w-5 h-5 text-white stroke-[3]" />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex-1 min-w-0 flex flex-col justify-between text-xs">
+                            <div>
+                              <div className="flex items-center justify-between gap-1">
+                                <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-500">
+                                  {p.category}
+                                </span>
+                                <div className="flex items-center gap-0.5 text-amber-500 font-bold text-[10px]">
+                                  <Star className="w-3 h-3 fill-current" />
+                                  <span>{p.rating}</span>
+                                </div>
+                              </div>
+                              <h5 className="font-bold text-slate-800 dark:text-slate-100 truncate mt-1" title={p.name}>
+                                {p.name}
+                              </h5>
+                            </div>
+
+                            <div className="flex items-baseline justify-between mt-1">
+                              <span className="font-extrabold text-slate-900 dark:text-white">
+                                {p.price.toLocaleString()} so'm
+                              </span>
+                              {p.discount > 0 && (
+                                <span className="text-[10px] font-bold text-rose-500">
+                                  -{p.discount}%
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+              <span className="text-xs text-slate-500">
+                Jami topildi: <strong>{apiProducts.length}</strong> ta tovar
+              </span>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsApiModalOpen(false)}
+                  className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-200"
+                >
+                  Bekor qilish
+                </button>
+
+                <button
+                  type="button"
+                  disabled={selectedApiIds.length === 0}
+                  onClick={handleImportSelected}
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold shadow-lg shadow-indigo-600/25 transition-all hover:scale-105 active:scale-95"
+                >
+                  <DownloadCloud className="w-4 h-4" />
+                  <span>
+                    Tanlanganlarni do'konga import qilish ({selectedApiIds.length})
+                  </span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

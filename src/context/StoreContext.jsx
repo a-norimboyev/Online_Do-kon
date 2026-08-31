@@ -323,6 +323,17 @@ export const StoreProvider = ({ children }) => {
     return newProduct;
   };
 
+  const importProductsBulk = (newProductsList) => {
+    if (!newProductsList || !newProductsList.length) return;
+    newProductsList.forEach(p => api.createProduct(p));
+    setProducts(prev => {
+      const existingNames = new Set(prev.map(p => p.name.toLowerCase()));
+      const uniqueNew = newProductsList.filter(p => !existingNames.has(p.name.toLowerCase()));
+      return [...uniqueNew, ...prev];
+    });
+    showToast(`${newProductsList.length} ta mahsulot internet API orqali do'konga qo'shildi! 🎉`, 'success');
+  };
+
   const updateProduct = (productId, updatedFields) => {
     api.updateProduct(productId, updatedFields);
     setProducts(prev =>
@@ -538,6 +549,7 @@ export const StoreProvider = ({ children }) => {
         updateOrderStatus,
         // Products CRUD
         addProduct,
+        importProductsBulk,
         updateProduct,
         deleteProduct,
         // Reviews
