@@ -511,6 +511,10 @@ app.post('/api/promos', asyncHandler(async (req, res) => {
     return res.status(400).json({ success: false, message: 'Promo-kod nomi talab qilinadi' });
   }
 
+  if (!/^[A-Z0-9_-]+$/i.test(code)) {
+    return res.status(400).json({ success: false, message: 'Promo-kod faqat harflar, raqamlar, _ va - dan iborat bo\'lishi kerak' });
+  }
+
   if (discountPercent && !validateNumber(discountPercent, 0, 100)) {
     return res.status(400).json({ success: false, message: 'Chegirma foizi 0-100 oraligida bolishi kerak' });
   }
@@ -519,9 +523,19 @@ app.post('/api/promos', asyncHandler(async (req, res) => {
     return res.status(400).json({ success: false, message: 'Birgina chegirma soni notogri' });
   }
 
+  if (!discountPercent && !fixedDiscount) {
+    return res.status(400).json({ success: false, message: 'Chegirma foizi yoki summa talab qilinadi' });
+  }
+
   const db = readDB();
+  const codeUpper = sanitizeString(code).toUpperCase();
+
+  if (db.promos.some(p => p.code === codeUpper)) {
+    return res.status(400).json({ success: false, message: 'Bu promo-kod allaqachon mavjud' });
+  }
+
   const newPromo = {
-    code: sanitizeString(code).toUpperCase(),
+    code: codeUpper,
     discountPercent: discountPercent ? Number(discountPercent) : 0,
     fixedDiscount: fixedDiscount ? Number(fixedDiscount) : 0,
     minAmount: minAmount ? Number(minAmount) : 0,
@@ -556,6 +570,17 @@ app.post('/api/reset-data', asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Malumotlar qayta tiklandi', data: freshData });
 }));
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 Online Dokon API Server running at http://localhost:${PORT}`);
+}).on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    const newPort = PORT + Math.floor(Math.random() * 1000);
+    console.warn(`⚠️ Port ${PORT} band. Yangi port ${newPort}'da urinib ko'rilmoqda...`);
+    app.listen(newPort, () => {
+      console.log(`🚀 Online Dokon API Server running at http://localhost:${newPort}`);
+    });
+  } else {
+    console.error('Server error:', err);
+    process.exit(1);
+  }
 });

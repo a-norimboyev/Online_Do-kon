@@ -307,9 +307,9 @@ export default function DashboardTab() {
                     </td>
                     <td className="py-3 px-2">
                       <span className="font-semibold text-slate-800 dark:text-slate-200 block">
-                        {order.customerName}
+                        {order.customerInfo?.name || order.customerName || 'Nomalum'}
                       </span>
-                      <span className="text-[11px] text-slate-400">{order.phone}</span>
+                      <span className="text-[11px] text-slate-400">{order.customerInfo?.phone || order.phone || '—'}</span>
                     </td>
                     <td className="py-3 px-2 font-bold text-slate-900 dark:text-white">
                       {order.total.toLocaleString()} so'm

@@ -1,5 +1,5 @@
-const API_BASE = '/api';
-const TIMEOUT = 10000;
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
+const TIMEOUT = import.meta.env.VITE_API_TIMEOUT ? Number(import.meta.env.VITE_API_TIMEOUT) : 10000;
 
 function withTimeout(promise, ms = TIMEOUT) {
   return Promise.race([
@@ -247,6 +247,20 @@ export const api = {
     } catch (e) {
       console.warn('resetData failed:', e.message);
       return null;
+    }
+  },
+
+  async search(query) {
+    if (!query || query.trim().length === 0) {
+      return { success: true, data: [], categories: [] };
+    }
+    try {
+      const encodedQuery = encodeURIComponent(query);
+      const data = await fetchWithValidation(`${API_BASE}/search?q=${encodedQuery}`);
+      return data;
+    } catch (e) {
+      console.warn('search failed:', e.message);
+      return { success: false, data: [], categories: [] };
     }
   }
 };
