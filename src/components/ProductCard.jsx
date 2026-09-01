@@ -1,6 +1,6 @@
 import React from 'react';
 import { useStore } from '../context/StoreContext';
-import { Heart, ShoppingBag, Star, Zap, Eye, Check, Clock, CheckCircle } from 'lucide-react';
+import { Heart, ShoppingBag, Star, Zap, Eye, Check, Clock, CheckCircle, Plus, Minus } from 'lucide-react';
 
 export default function ProductCard({ product }) {
   const {
@@ -9,19 +9,32 @@ export default function ProductCard({ product }) {
     toggleWishlist,
     isInWishlist,
     setSelectedProductDetail,
-    setIsCheckoutOpen
+    updateCartQuantity
   } = useStore();
 
   const isLiked = isInWishlist(product.id);
   const cartItem = cart.find(i => i.id === product.id);
   const inCart = !!cartItem;
 
-  // Monthly installment estimate (12 months)
   const monthlyPrice = Math.round(product.price / 12);
 
   const handleAddToCart = (e) => {
     e.stopPropagation();
     addToCart(product, 1);
+  };
+
+  const handleIncreaseQty = (e) => {
+    e.stopPropagation();
+    if (cartItem) {
+      updateCartQuantity(product.id, cartItem.quantity + 1);
+    }
+  };
+
+  const handleDecreaseQty = (e) => {
+    e.stopPropagation();
+    if (cartItem) {
+      updateCartQuantity(product.id, Math.max(1, cartItem.quantity - 1));
+    }
   };
 
   return (
@@ -127,27 +140,39 @@ export default function ProductCard({ product }) {
           </div>
 
           {/* Uzum Full-Width Purple Action Button: "Ertaga" */}
-          <button
-            onClick={handleAddToCart}
-            disabled={product.stock <= 0}
-            className={`w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all shadow-sm ${
-              inCart
-                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                : 'bg-[#7000FF] hover:bg-[#5E00D6] text-white active:scale-95'
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
-          >
-            {inCart ? (
-              <>
-                <Check className="w-3.5 h-3.5" />
-                <span>Savatda ({cartItem.quantity})</span>
-              </>
-            ) : (
-              <>
-                <ShoppingBag className="w-3.5 h-3.5" />
-                <span>Ertaga</span>
-              </>
-            )}
-          </button>
+          {inCart ? (
+            <div className="w-full flex items-center gap-1.5">
+              <button
+                onClick={handleDecreaseQty}
+                className="flex-1 flex items-center justify-center gap-1 py-2 px-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all active:scale-95"
+                title="Miqdorni kamaytirish"
+              >
+                <Minus className="w-4 h-4" />
+              </button>
+              <div className="flex-1 flex items-center justify-center py-2 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
+                <span className="font-bold text-emerald-700 dark:text-emerald-400 text-sm">
+                  {cartItem.quantity}
+                </span>
+              </div>
+              <button
+                onClick={handleIncreaseQty}
+                disabled={cartItem.quantity >= product.stock}
+                className="flex-1 flex items-center justify-center gap-1 py-2 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Miqdorni oshirish"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleAddToCart}
+              disabled={product.stock <= 0}
+              className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all shadow-sm bg-[#7000FF] hover:bg-[#5E00D6] text-white active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ShoppingBag className="w-3.5 h-3.5" />
+              <span>Ertaga</span>
+            </button>
+          )}
         </div>
       </div>
     </div>
