@@ -7,20 +7,50 @@ initDB();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
-app.use(express.json());
+app.use(cors({
+  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:5000'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  credentials: true
+}));
 
-// Logger
+app.use(express.json({ limit: '10mb' }));
+
 app.use((req, res, next) => {
   console.log(`[API] ${req.method} ${req.url}`);
   next();
 });
 
-// --- STATS & DASHBOARD ---
-app.get('/api/stats/dashboard', (req, res) => {
+function validateString(value, maxLength = 500) {
+  return typeof value === 'string' && value.length > 0 && value.length <= maxLength;
+}
+
+function validateNumber(value, min = 0, max = Infinity) {
+  return typeof value === 'number' && value >= min && value <= max;
+}
+
+function validateEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function sanitizeString(str) {
+  return String(str).trim().slice(0, 500);
+}
+
+function asyncHandler(fn) {
+  return (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+}
+
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  res.status(500).json({ success: false, message: 'Server xatosi yuz berdi' });
+});
+
+app.get('/api/stats/dashboard', asyncHandler(async (req, res) => {
   const db = readDB();
   const totalRevenue = db.orders.reduce((sum, o) => {
-    return o.status !== 'Bekor qilindi' ? sum + o.total : sum;
+    return o.status !== 'Bekor qilindi' ? sum + (o.total || 0) : sum;
   }, 0);
 
   const totalOrders = db.orders.length;
@@ -41,18 +71,16 @@ app.get('/api/stats/dashboard', (req, res) => {
       lowStockProducts: db.products.filter(p => p.stock <= 3)
     }
   });
-});
+}));
 
-// --- LIVE SEARCH API (Internet & Local Search) ---
-app.get('/api/search', (req, res) => {
+app.get('/api/search', asyncHandler(async (req, res) => {
   const db = readDB();
-  const query = (req.query.q || '').trim().toLowerCase();
+  const query = sanitizeString(req.query.q || '').toLowerCase();
 
-  if (!query) {
+  if (!query || query.length < 1) {
     return res.json({ success: true, count: 0, data: [], categories: [] });
   }
 
-  // Search in products (name, description, specs, category)
   const matchedProducts = db.products.filter(p => {
     const nameMatch = (p.name || p.title || '').toLowerCase().includes(query);
     const descMatch = (p.description || '').toLowerCase().includes(query);
@@ -60,7 +88,6 @@ app.get('/api/search', (req, res) => {
     return nameMatch || descMatch || catMatch;
   });
 
-  // Matched categories
   const matchedCategories = db.categories.filter(c =>
     c.name.toLowerCase().includes(query) || c.id.toLowerCase().includes(query)
   );
@@ -72,32 +99,37 @@ app.get('/api/search', (req, res) => {
     data: matchedProducts.slice(0, 8),
     categories: matchedCategories
   });
-});
+}));
 
-// --- PRODUCTS API ---
-app.get('/api/products', (req, res) => {
+app.get('/api/products', asyncHandler(async (req, res) => {
   const db = readDB();
   let result = [...db.products];
 
   const { category, search, sort, inStock, discounted, minPrice, maxPrice } = req.query;
 
   if (category && category !== 'all') {
-    result = result.filter(p => p.category === category);
+    result = result.filter(p => p.category === sanitizeString(category));
   }
 
   if (search) {
-    const q = search.toLowerCase();
+    const q = sanitizeString(search).toLowerCase();
     result = result.filter(p =>
       (p.name || p.title || '').toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q)
     );
   }
 
   if (minPrice) {
-    result = result.filter(p => p.price >= Number(minPrice));
+    const min = Number(minPrice);
+    if (!isNaN(min) && min >= 0) {
+      result = result.filter(p => p.price >= min);
+    }
   }
 
   if (maxPrice) {
-    result = result.filter(p => p.price <= Number(maxPrice));
+    const max = Number(maxPrice);
+    if (!isNaN(max) && max >= 0) {
+      result = result.filter(p => p.price <= max);
+    }
   }
 
   if (inStock === 'true') {
@@ -121,68 +153,107 @@ app.get('/api/products', (req, res) => {
   }
 
   res.json({ success: true, count: result.length, data: result });
-});
+}));
 
-app.get('/api/products/:id', (req, res) => {
+app.get('/api/products/:id', asyncHandler(async (req, res) => {
   const db = readDB();
   const product = db.products.find(p => p.id === req.params.id || String(p.id) === req.params.id);
   if (!product) {
     return res.status(404).json({ success: false, message: 'Mahsulot topilmadi' });
   }
   res.json({ success: true, data: product });
-});
+}));
 
-app.post('/api/products', (req, res) => {
+app.post('/api/products', asyncHandler(async (req, res) => {
+  const { name, title, price, oldPrice, stock, category, description, image, images } = req.body;
+
+  if (!validateString(name || title)) {
+    return res.status(400).json({ success: false, message: 'Mahsulot nomi talab qilinadi' });
+  }
+
+  if (!validateNumber(price, 0) || !validateNumber(stock, 0)) {
+    return res.status(400).json({ success: false, message: 'Narx va ombor soni notogri' });
+  }
+
   const db = readDB();
-  const productData = req.body;
-
-  const discount = productData.oldPrice && productData.oldPrice > productData.price
-    ? Math.round(((productData.oldPrice - productData.price) / productData.oldPrice) * 100)
+  const discount = oldPrice && oldPrice > price
+    ? Math.round(((oldPrice - price) / oldPrice) * 100)
     : 0;
 
   const newProduct = {
     id: `prod-${Date.now()}`,
-    name: productData.name || productData.title,
-    title: productData.name || productData.title,
+    name: sanitizeString(name || title),
+    title: sanitizeString(name || title),
+    price: Number(price),
+    oldPrice: oldPrice ? Number(oldPrice) : price,
+    stock: Number(stock),
+    category: sanitizeString(category || 'Boshqalar'),
+    description: sanitizeString(description || ''),
+    image: sanitizeString(image || ''),
+    images: Array.isArray(images) ? images.map(i => sanitizeString(i)) : [],
     rating: 5.0,
     reviewsCount: 0,
     reviews: [],
     discount,
-    ...productData
+    createdAt: new Date().toISOString()
   };
 
   db.products.unshift(newProduct);
-  writeDB(db);
-  res.status(201).json({ success: true, data: newProduct });
-});
+  if (!writeDB(db)) {
+    return res.status(500).json({ success: false, message: 'Malumot saqlashda xato' });
+  }
 
-app.put('/api/products/:id', (req, res) => {
+  res.status(201).json({ success: true, data: newProduct });
+}));
+
+app.put('/api/products/:id', asyncHandler(async (req, res) => {
   const db = readDB();
   const idx = db.products.findIndex(p => p.id === req.params.id || String(p.id) === req.params.id);
   if (idx === -1) {
     return res.status(404).json({ success: false, message: 'Mahsulot topilmadi' });
   }
 
-  const updatedFields = req.body;
-  const current = db.products[idx];
+  const { name, title, price, oldPrice, stock, category, description, image, images } = req.body;
 
-  const discount = updatedFields.oldPrice && updatedFields.oldPrice > updatedFields.price
-    ? Math.round(((updatedFields.oldPrice - updatedFields.price) / updatedFields.oldPrice) * 100)
+  if (name && !validateString(name)) {
+    return res.status(400).json({ success: false, message: 'Mahsulot nomi notogri' });
+  }
+
+  if (price && !validateNumber(price, 0)) {
+    return res.status(400).json({ success: false, message: 'Narx notogri' });
+  }
+
+  const current = db.products[idx];
+  const newPrice = price !== undefined ? Number(price) : current.price;
+  const newOldPrice = oldPrice !== undefined ? Number(oldPrice) : current.oldPrice;
+
+  const discount = newOldPrice && newOldPrice > newPrice
+    ? Math.round(((newOldPrice - newPrice) / newOldPrice) * 100)
     : current.discount;
 
   db.products[idx] = {
     ...current,
-    ...updatedFields,
-    name: updatedFields.name || updatedFields.title || current.name,
-    title: updatedFields.name || updatedFields.title || current.title,
-    discount
+    name: name ? sanitizeString(name) : current.name,
+    title: title ? sanitizeString(title) : current.title,
+    price: newPrice,
+    oldPrice: newOldPrice,
+    stock: stock !== undefined ? Number(stock) : current.stock,
+    category: category ? sanitizeString(category) : current.category,
+    description: description ? sanitizeString(description) : current.description,
+    image: image ? sanitizeString(image) : current.image,
+    images: Array.isArray(images) ? images.map(i => sanitizeString(i)) : current.images,
+    discount,
+    updatedAt: new Date().toISOString()
   };
 
-  writeDB(db);
-  res.json({ success: true, data: db.products[idx] });
-});
+  if (!writeDB(db)) {
+    return res.status(500).json({ success: false, message: 'Malumot saqlashda xato' });
+  }
 
-app.delete('/api/products/:id', (req, res) => {
+  res.json({ success: true, data: db.products[idx] });
+}));
+
+app.delete('/api/products/:id', asyncHandler(async (req, res) => {
   const db = readDB();
   const exists = db.products.some(p => p.id === req.params.id || String(p.id) === req.params.id);
   if (!exists) {
@@ -190,12 +261,15 @@ app.delete('/api/products/:id', (req, res) => {
   }
 
   db.products = db.products.filter(p => p.id !== req.params.id && String(p.id) !== req.params.id);
-  writeDB(db);
-  res.json({ success: true, message: "Mahsulot o'chirildi" });
-});
 
-// --- REVIEWS API ---
-app.post('/api/products/:id/reviews', (req, res) => {
+  if (!writeDB(db)) {
+    return res.status(500).json({ success: false, message: 'Malumot saqlashda xato' });
+  }
+
+  res.json({ success: true, message: 'Mahsulot ochirildi' });
+}));
+
+app.post('/api/products/:id/reviews', asyncHandler(async (req, res) => {
   const db = readDB();
   const idx = db.products.findIndex(p => p.id === req.params.id || String(p.id) === req.params.id);
   if (idx === -1) {
@@ -203,11 +277,24 @@ app.post('/api/products/:id/reviews', (req, res) => {
   }
 
   const { author, rating, comment } = req.body;
+
+  if (!validateString(author, 100)) {
+    return res.status(400).json({ success: false, message: 'Avtorning ismi talab qilinadi' });
+  }
+
+  if (!validateNumber(rating, 1, 5)) {
+    return res.status(400).json({ success: false, message: 'Reyting 1-5 oraligida bolishi kerak' });
+  }
+
+  if (comment && !validateString(comment)) {
+    return res.status(400).json({ success: false, message: 'Sharh juda uzun' });
+  }
+
   const newReview = {
     id: `rev-${Date.now()}`,
-    author: author || 'Mijoz',
-    rating: Number(rating) || 5,
-    comment: comment || '',
+    author: sanitizeString(author),
+    rating: Number(rating),
+    comment: sanitizeString(comment || ''),
     date: new Date().toISOString().split('T')[0]
   };
 
@@ -217,11 +304,14 @@ app.post('/api/products/:id/reviews', (req, res) => {
   const totalScore = product.reviews.reduce((sum, r) => sum + Number(r.rating), 0);
   product.rating = Number((totalScore / product.reviews.length).toFixed(1));
 
-  writeDB(db);
-  res.status(201).json({ success: true, data: newReview, product });
-});
+  if (!writeDB(db)) {
+    return res.status(500).json({ success: false, message: 'Malumot saqlashda xato' });
+  }
 
-app.delete('/api/products/:id/reviews/:reviewId', (req, res) => {
+  res.status(201).json({ success: true, data: newReview, product });
+}));
+
+app.delete('/api/products/:id/reviews/:reviewId', asyncHandler(async (req, res) => {
   const db = readDB();
   const prodIdx = db.products.findIndex(p => p.id === req.params.id || String(p.id) === req.params.id);
   if (prodIdx === -1) {
@@ -238,83 +328,139 @@ app.delete('/api/products/:id/reviews/:reviewId', (req, res) => {
     product.rating = 5.0;
   }
 
-  writeDB(db);
-  res.json({ success: true, message: "Sharh o'chirildi" });
-});
+  if (!writeDB(db)) {
+    return res.status(500).json({ success: false, message: 'Malumot saqlashda xato' });
+  }
 
-// --- CATEGORIES API ---
-app.get('/api/categories', (req, res) => {
+  res.json({ success: true, message: 'Sharh ochirildi' });
+}));
+
+app.get('/api/categories', asyncHandler(async (req, res) => {
   const db = readDB();
   res.json({ success: true, data: db.categories });
-});
+}));
 
-app.post('/api/categories', (req, res) => {
+app.post('/api/categories', asyncHandler(async (req, res) => {
+  const { name, icon } = req.body;
+
+  if (!validateString(name, 100)) {
+    return res.status(400).json({ success: false, message: 'Toifa nomi talab qilinadi' });
+  }
+
   const db = readDB();
   const newCat = {
-    id: req.body.id || `cat-${Date.now()}`,
-    name: req.body.name,
-    icon: req.body.icon || 'LayoutGrid'
+    id: `cat-${Date.now()}`,
+    name: sanitizeString(name),
+    icon: sanitizeString(icon || 'LayoutGrid', 50),
+    createdAt: new Date().toISOString()
   };
-  db.categories.push(newCat);
-  writeDB(db);
-  res.status(201).json({ success: true, data: newCat });
-});
 
-app.put('/api/categories/:id', (req, res) => {
+  db.categories.push(newCat);
+  if (!writeDB(db)) {
+    return res.status(500).json({ success: false, message: 'Malumot saqlashda xato' });
+  }
+
+  res.status(201).json({ success: true, data: newCat });
+}));
+
+app.put('/api/categories/:id', asyncHandler(async (req, res) => {
   const db = readDB();
   const idx = db.categories.findIndex(c => c.id === req.params.id);
   if (idx === -1) {
     return res.status(404).json({ success: false, message: 'Toifa topilmadi' });
   }
-  db.categories[idx] = { ...db.categories[idx], ...req.body };
-  writeDB(db);
-  res.json({ success: true, data: db.categories[idx] });
-});
 
-app.delete('/api/categories/:id', (req, res) => {
-  if (req.params.id === 'all') {
-    return res.status(400).json({ success: false, message: "Asosiy toifani o'chirib bo'lmaydi" });
+  const { name, icon } = req.body;
+
+  if (name && !validateString(name, 100)) {
+    return res.status(400).json({ success: false, message: 'Toifa nomi notogri' });
   }
+
+  db.categories[idx] = {
+    ...db.categories[idx],
+    ...(name && { name: sanitizeString(name) }),
+    ...(icon && { icon: sanitizeString(icon, 50) }),
+    updatedAt: new Date().toISOString()
+  };
+
+  if (!writeDB(db)) {
+    return res.status(500).json({ success: false, message: 'Malumot saqlashda xato' });
+  }
+
+  res.json({ success: true, data: db.categories[idx] });
+}));
+
+app.delete('/api/categories/:id', asyncHandler(async (req, res) => {
+  if (req.params.id === 'all') {
+    return res.status(400).json({ success: false, message: 'Asosiy toifani ochirib bolmaydi' });
+  }
+
   const db = readDB();
   db.categories = db.categories.filter(c => c.id !== req.params.id);
-  writeDB(db);
-  res.json({ success: true, message: "Toifa o'chirildi" });
-});
 
-// --- ORDERS API ---
-app.get('/api/orders', (req, res) => {
+  if (!writeDB(db)) {
+    return res.status(500).json({ success: false, message: 'Malumot saqlashda xato' });
+  }
+
+  res.json({ success: true, message: 'Toifa ochirildi' });
+}));
+
+app.get('/api/orders', asyncHandler(async (req, res) => {
   const db = readDB();
   res.json({ success: true, data: db.orders });
-});
+}));
 
-app.get('/api/orders/:id', (req, res) => {
+app.get('/api/orders/:id', asyncHandler(async (req, res) => {
   const db = readDB();
   const order = db.orders.find(o => o.id === req.params.id);
   if (!order) {
     return res.status(404).json({ success: false, message: 'Buyurtma topilmadi' });
   }
   res.json({ success: true, data: order });
-});
+}));
 
-app.post('/api/orders', (req, res) => {
+app.post('/api/orders', asyncHandler(async (req, res) => {
+  const { items, total, customerInfo, deliveryInfo } = req.body;
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ success: false, message: 'Buyurtmada mahsulot yoq' });
+  }
+
+  if (!validateNumber(total, 0)) {
+    return res.status(400).json({ success: false, message: 'Jami qiymati notogri' });
+  }
+
+  if (!customerInfo || !validateString(customerInfo.name, 100)) {
+    return res.status(400).json({ success: false, message: 'Mijoz malumoti talab qilinadi' });
+  }
+
+  if (customerInfo.phone && !/^\d{7,20}$/.test(customerInfo.phone.replace(/\D/g, ''))) {
+    return res.status(400).json({ success: false, message: 'Telefon raqami notogri' });
+  }
+
   const db = readDB();
-  const orderData = req.body;
-
   const newOrder = {
     id: `ORD-${Math.floor(10000 + Math.random() * 90000)}`,
     createdAt: new Date().toISOString(),
     status: 'Yangi',
-    ...orderData
+    items: items.map(i => ({ id: String(i.id), quantity: Math.max(1, Number(i.quantity)) })),
+    total: Number(total),
+    customerInfo: {
+      name: sanitizeString(customerInfo.name),
+      phone: sanitizeString(customerInfo.phone || ''),
+      email: customerInfo.email && validateEmail(customerInfo.email) ? customerInfo.email : '',
+      address: sanitizeString(customerInfo.address || '')
+    },
+    deliveryInfo: deliveryInfo || {}
   };
 
-  // Deduct stocks
-  if (Array.isArray(orderData.items)) {
+  if (Array.isArray(items)) {
     db.products = db.products.map(prod => {
-      const match = orderData.items.find(i => i.id === prod.id);
+      const match = items.find(i => String(i.id) === String(prod.id));
       if (match) {
         return {
           ...prod,
-          stock: Math.max(0, prod.stock - match.quantity)
+          stock: Math.max(0, prod.stock - Number(match.quantity))
         };
       }
       return prod;
@@ -322,49 +468,94 @@ app.post('/api/orders', (req, res) => {
   }
 
   db.orders.unshift(newOrder);
-  writeDB(db);
-  res.status(201).json({ success: true, data: newOrder });
-});
+  if (!writeDB(db)) {
+    return res.status(500).json({ success: false, message: 'Malumot saqlashda xato' });
+  }
 
-app.patch('/api/orders/:id/status', (req, res) => {
+  res.status(201).json({ success: true, data: newOrder });
+}));
+
+app.patch('/api/orders/:id/status', asyncHandler(async (req, res) => {
+  const { status } = req.body;
+  const validStatuses = ['Yangi', 'Tayyorlanmoqda', 'Yetkazilmoqda', 'Yetkazib berildi', 'Bekor qilindi'];
+
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ success: false, message: 'Notogri holat' });
+  }
+
   const db = readDB();
   const idx = db.orders.findIndex(o => o.id === req.params.id);
   if (idx === -1) {
     return res.status(404).json({ success: false, message: 'Buyurtma topilmadi' });
   }
 
-  db.orders[idx].status = req.body.status;
-  writeDB(db);
-  res.json({ success: true, data: db.orders[idx] });
-});
+  db.orders[idx].status = status;
+  db.orders[idx].updatedAt = new Date().toISOString();
 
-// --- PROMOS API ---
-app.get('/api/promos', (req, res) => {
+  if (!writeDB(db)) {
+    return res.status(500).json({ success: false, message: 'Malumot saqlashda xato' });
+  }
+
+  res.json({ success: true, data: db.orders[idx] });
+}));
+
+app.get('/api/promos', asyncHandler(async (req, res) => {
   const db = readDB();
   res.json({ success: true, data: db.promos });
-});
+}));
 
-app.post('/api/promos', (req, res) => {
+app.post('/api/promos', asyncHandler(async (req, res) => {
+  const { code, discountPercent, fixedDiscount, minAmount } = req.body;
+
+  if (!validateString(code, 20)) {
+    return res.status(400).json({ success: false, message: 'Promo-kod nomi talab qilinadi' });
+  }
+
+  if (discountPercent && !validateNumber(discountPercent, 0, 100)) {
+    return res.status(400).json({ success: false, message: 'Chegirma foizi 0-100 oraligida bolishi kerak' });
+  }
+
+  if (fixedDiscount && !validateNumber(fixedDiscount, 0)) {
+    return res.status(400).json({ success: false, message: 'Birgina chegirma soni notogri' });
+  }
+
   const db = readDB();
-  db.promos.push(req.body);
-  writeDB(db);
-  res.status(201).json({ success: true, data: req.body });
-});
+  const newPromo = {
+    code: sanitizeString(code).toUpperCase(),
+    discountPercent: discountPercent ? Number(discountPercent) : 0,
+    fixedDiscount: fixedDiscount ? Number(fixedDiscount) : 0,
+    minAmount: minAmount ? Number(minAmount) : 0,
+    createdAt: new Date().toISOString()
+  };
 
-app.delete('/api/promos/:code', (req, res) => {
+  db.promos.push(newPromo);
+  if (!writeDB(db)) {
+    return res.status(500).json({ success: false, message: 'Malumot saqlashda xato' });
+  }
+
+  res.status(201).json({ success: true, data: newPromo });
+}));
+
+app.delete('/api/promos/:code', asyncHandler(async (req, res) => {
   const db = readDB();
-  db.promos = db.promos.filter(p => p.code !== req.params.code);
-  writeDB(db);
-  res.json({ success: true, message: "Promo-kod o'chirildi" });
-});
+  const code = sanitizeString(req.params.code).toUpperCase();
+  db.promos = db.promos.filter(p => p.code !== code);
 
-// --- RESET DEMO DATA ---
-app.post('/api/reset-data', (req, res) => {
+  if (!writeDB(db)) {
+    return res.status(500).json({ success: false, message: 'Malumot saqlashda xato' });
+  }
+
+  res.json({ success: true, message: 'Promo-kod ochirildi' });
+}));
+
+app.post('/api/reset-data', asyncHandler(async (req, res) => {
   const freshData = resetDB();
-  res.json({ success: true, message: "Ma'lumotlar qayta tiklandi", data: freshData });
-});
+  if (!freshData) {
+    return res.status(500).json({ success: false, message: 'Malumot qayta tiklanishda xato' });
+  }
+  res.json({ success: true, message: 'Malumotlar qayta tiklandi', data: freshData });
+}));
 
-// Start Express Server
 app.listen(PORT, () => {
-  console.log(`🚀 Online Do'kon API Server running at http://localhost:${PORT}`);
+  console.log(`🚀 Online Dokon API Server running at http://localhost:${PORT}`);
 });

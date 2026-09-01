@@ -1,14 +1,34 @@
 const API_BASE = '/api';
+const TIMEOUT = 10000;
+
+function withTimeout(promise, ms = TIMEOUT) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), ms))
+  ]);
+}
+
+async function fetchWithValidation(url, options = {}) {
+  try {
+    const res = await withTimeout(fetch(url, options));
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(error.message || `HTTP ${res.status}`);
+    }
+    return await res.json();
+  } catch (error) {
+    console.error(`API error at ${url}:`, error);
+    throw error;
+  }
+}
 
 export const api = {
   async getDashboardStats() {
     try {
-      const res = await fetch(`${API_BASE}/stats/dashboard`);
-      if (!res.ok) throw new Error('API request failed');
-      const data = await res.json();
-      return data.data;
+      const data = await fetchWithValidation(`${API_BASE}/stats/dashboard`);
+      return data.data || null;
     } catch (e) {
-      console.warn('API getDashboardStats error', e);
+      console.warn('getDashboardStats failed:', e.message);
       return null;
     }
   },
@@ -16,240 +36,216 @@ export const api = {
   async getProducts(params = {}) {
     try {
       const query = new URLSearchParams(params).toString();
-      const res = await fetch(`${API_BASE}/products?${query}`);
-      if (!res.ok) throw new Error('API request failed');
-      const data = await res.json();
-      return data.data;
+      const data = await fetchWithValidation(`${API_BASE}/products?${query}`);
+      return data.data || null;
     } catch (e) {
-      console.warn('API getProducts error', e);
+      console.warn('getProducts failed:', e.message);
       return null;
     }
   },
 
   async createProduct(productData) {
+    if (!productData || !productData.name) throw new Error('Product name required');
     try {
-      const res = await fetch(`${API_BASE}/products`, {
+      const data = await fetchWithValidation(`${API_BASE}/products`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(productData)
       });
-      if (!res.ok) throw new Error('API request failed');
-      const data = await res.json();
-      return data.data;
+      return data.data || null;
     } catch (e) {
-      console.warn('API createProduct error', e);
+      console.warn('createProduct failed:', e.message);
       return null;
     }
   },
 
   async updateProduct(id, productData) {
+    if (!id || !productData) throw new Error('ID and data required');
     try {
-      const res = await fetch(`${API_BASE}/products/${id}`, {
+      const data = await fetchWithValidation(`${API_BASE}/products/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(productData)
       });
-      if (!res.ok) throw new Error('API request failed');
-      const data = await res.json();
-      return data.data;
+      return data.data || null;
     } catch (e) {
-      console.warn('API updateProduct error', e);
+      console.warn('updateProduct failed:', e.message);
       return null;
     }
   },
 
   async deleteProduct(id) {
+    if (!id) throw new Error('ID required');
     try {
-      const res = await fetch(`${API_BASE}/products/${id}`, {
-        method: 'DELETE'
-      });
-      if (!res.ok) throw new Error('API request failed');
+      await fetchWithValidation(`${API_BASE}/products/${id}`, { method: 'DELETE' });
       return true;
     } catch (e) {
-      console.warn('API deleteProduct error', e);
+      console.warn('deleteProduct failed:', e.message);
       return false;
     }
   },
 
   async addReview(productId, reviewData) {
+    if (!productId || !reviewData) throw new Error('Product ID and review data required');
     try {
-      const res = await fetch(`${API_BASE}/products/${productId}/reviews`, {
+      const data = await fetchWithValidation(`${API_BASE}/products/${productId}/reviews`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(reviewData)
       });
-      if (!res.ok) throw new Error('API request failed');
-      const data = await res.json();
-      return data;
+      return data || null;
     } catch (e) {
-      console.warn('API addReview error', e);
+      console.warn('addReview failed:', e.message);
       return null;
     }
   },
 
   async deleteReview(productId, reviewId) {
+    if (!productId || !reviewId) throw new Error('Product ID and review ID required');
     try {
-      const res = await fetch(`${API_BASE}/products/${productId}/reviews/${reviewId}`, {
+      await fetchWithValidation(`${API_BASE}/products/${productId}/reviews/${reviewId}`, {
         method: 'DELETE'
       });
-      if (!res.ok) throw new Error('API request failed');
       return true;
     } catch (e) {
-      console.warn('API deleteReview error', e);
+      console.warn('deleteReview failed:', e.message);
       return false;
     }
   },
 
   async getCategories() {
     try {
-      const res = await fetch(`${API_BASE}/categories`);
-      if (!res.ok) throw new Error('API request failed');
-      const data = await res.json();
-      return data.data;
+      const data = await fetchWithValidation(`${API_BASE}/categories`);
+      return data.data || null;
     } catch (e) {
-      console.warn('API getCategories error', e);
+      console.warn('getCategories failed:', e.message);
       return null;
     }
   },
 
   async createCategory(catData) {
+    if (!catData || !catData.name) throw new Error('Category name required');
     try {
-      const res = await fetch(`${API_BASE}/categories`, {
+      const data = await fetchWithValidation(`${API_BASE}/categories`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(catData)
       });
-      if (!res.ok) throw new Error('API request failed');
-      const data = await res.json();
-      return data.data;
+      return data.data || null;
     } catch (e) {
-      console.warn('API createCategory error', e);
+      console.warn('createCategory failed:', e.message);
       return null;
     }
   },
 
   async updateCategory(id, catData) {
+    if (!id || !catData) throw new Error('ID and data required');
     try {
-      const res = await fetch(`${API_BASE}/categories/${id}`, {
+      const data = await fetchWithValidation(`${API_BASE}/categories/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(catData)
       });
-      if (!res.ok) throw new Error('API request failed');
-      const data = await res.json();
-      return data.data;
+      return data.data || null;
     } catch (e) {
-      console.warn('API updateCategory error', e);
+      console.warn('updateCategory failed:', e.message);
       return null;
     }
   },
 
   async deleteCategory(id) {
+    if (!id) throw new Error('ID required');
     try {
-      const res = await fetch(`${API_BASE}/categories/${id}`, {
-        method: 'DELETE'
-      });
-      if (!res.ok) throw new Error('API request failed');
+      await fetchWithValidation(`${API_BASE}/categories/${id}`, { method: 'DELETE' });
       return true;
     } catch (e) {
-      console.warn('API deleteCategory error', e);
+      console.warn('deleteCategory failed:', e.message);
       return false;
     }
   },
 
   async getOrders() {
     try {
-      const res = await fetch(`${API_BASE}/orders`);
-      if (!res.ok) throw new Error('API request failed');
-      const data = await res.json();
-      return data.data;
+      const data = await fetchWithValidation(`${API_BASE}/orders`);
+      return data.data || null;
     } catch (e) {
-      console.warn('API getOrders error', e);
+      console.warn('getOrders failed:', e.message);
       return null;
     }
   },
 
   async createOrder(orderData) {
+    if (!orderData || !orderData.items) throw new Error('Order data required');
     try {
-      const res = await fetch(`${API_BASE}/orders`, {
+      const data = await fetchWithValidation(`${API_BASE}/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderData)
       });
-      if (!res.ok) throw new Error('API request failed');
-      const data = await res.json();
-      return data.data;
+      return data.data || null;
     } catch (e) {
-      console.warn('API createOrder error', e);
+      console.warn('createOrder failed:', e.message);
       return null;
     }
   },
 
   async updateOrderStatus(id, status) {
+    if (!id || !status) throw new Error('ID and status required');
     try {
-      const res = await fetch(`${API_BASE}/orders/${id}/status`, {
+      const data = await fetchWithValidation(`${API_BASE}/orders/${id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
       });
-      if (!res.ok) throw new Error('API request failed');
-      const data = await res.json();
-      return data.data;
+      return data.data || null;
     } catch (e) {
-      console.warn('API updateOrderStatus error', e);
+      console.warn('updateOrderStatus failed:', e.message);
       return null;
     }
   },
 
   async getPromos() {
     try {
-      const res = await fetch(`${API_BASE}/promos`);
-      if (!res.ok) throw new Error('API request failed');
-      const data = await res.json();
-      return data.data;
+      const data = await fetchWithValidation(`${API_BASE}/promos`);
+      return data.data || null;
     } catch (e) {
-      console.warn('API getPromos error', e);
+      console.warn('getPromos failed:', e.message);
       return null;
     }
   },
 
   async createPromo(promoData) {
+    if (!promoData || !promoData.code) throw new Error('Promo code required');
     try {
-      const res = await fetch(`${API_BASE}/promos`, {
+      const data = await fetchWithValidation(`${API_BASE}/promos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(promoData)
       });
-      if (!res.ok) throw new Error('API request failed');
-      const data = await res.json();
-      return data.data;
+      return data.data || null;
     } catch (e) {
-      console.warn('API createPromo error', e);
+      console.warn('createPromo failed:', e.message);
       return null;
     }
   },
 
   async deletePromo(code) {
+    if (!code) throw new Error('Code required');
     try {
-      const res = await fetch(`${API_BASE}/promos/${code}`, {
-        method: 'DELETE'
-      });
-      if (!res.ok) throw new Error('API request failed');
+      await fetchWithValidation(`${API_BASE}/promos/${code}`, { method: 'DELETE' });
       return true;
     } catch (e) {
-      console.warn('API deletePromo error', e);
+      console.warn('deletePromo failed:', e.message);
       return false;
     }
   },
 
   async resetData() {
     try {
-      const res = await fetch(`${API_BASE}/reset-data`, { method: 'POST' });
-      if (!res.ok) throw new Error('API request failed');
-      const data = await res.json();
-      return data.data;
+      const data = await fetchWithValidation(`${API_BASE}/reset-data`, { method: 'POST' });
+      return data.data || null;
     } catch (e) {
-      console.warn('API resetData error', e);
+      console.warn('resetData failed:', e.message);
       return null;
     }
   }

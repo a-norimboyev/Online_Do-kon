@@ -151,42 +151,58 @@ export const StoreProvider = ({ children }) => {
 
   // Cart Operations
   const addToCart = (product, quantity = 1) => {
+    if (!product || !product.id) {
+      showToast("Mahsulot topilmadi", "error");
+      return;
+    }
+
     if (product.stock <= 0) {
       showToast("Kechirasiz, ushbu tovar omborda qolmagan!", "error");
       return;
     }
 
+    const qty = Math.max(1, Math.min(quantity, product.stock));
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id);
       if (existing) {
-        const newQty = Math.min(existing.quantity + quantity, product.stock);
+        const newQty = Math.min(existing.quantity + qty, product.stock);
         showToast(`"${product.name}" savatdagi soni oshirildi (${newQty} dona)`);
         return prev.map(item =>
           item.id === product.id ? { ...item, quantity: newQty } : item
         );
       } else {
         showToast(`"${product.name}" savatga qo'shildi!`);
-        return [...prev, { ...product, quantity: Math.min(quantity, product.stock) }];
+        return [...prev, { ...product, quantity: qty }];
       }
     });
   };
 
   const updateCartQuantity = (productId, newQuantity) => {
+    if (!productId || newQuantity < 0) return;
+
     if (newQuantity <= 0) {
       removeFromCart(productId);
       return;
     }
+
     const prod = products.find(p => p.id === productId);
-    if (prod && newQuantity > prod.stock) {
+    if (!prod) {
+      showToast("Mahsulot topilmadi", "error");
+      return;
+    }
+
+    if (newQuantity > prod.stock) {
       showToast(`Mavjud maksimal qoldiq: ${prod.stock} dona`, 'error');
       return;
     }
+
     setCart(prev =>
       prev.map(item => (item.id === productId ? { ...item, quantity: newQuantity } : item))
     );
   };
 
   const removeFromCart = (productId) => {
+    if (!productId) return;
     const item = cart.find(i => i.id === productId);
     setCart(prev => prev.filter(i => i.id !== productId));
     if (item) {
@@ -201,6 +217,11 @@ export const StoreProvider = ({ children }) => {
 
   // Wishlist Operations
   const toggleWishlist = (product) => {
+    if (!product || !product.id) {
+      showToast("Mahsulot topilmadi", "error");
+      return;
+    }
+
     const exists = wishlist.some(id => id === product.id);
     if (exists) {
       setWishlist(prev => prev.filter(id => id !== product.id));
